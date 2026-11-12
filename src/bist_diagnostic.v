@@ -3,6 +3,7 @@
 // Module: bist_diagnostic
 // Description: Built-in Self-Test (BIST) with 16-bit LFSR & 7-Segment Status Driver
 // Author: Sujan S & Team (RVCE ECE)
+// Target: SkyWater 130nm CMOS (Tiny Tapeout 1x1 Standard Tile)
 // =============================================================================
 
 `default_nettype none
@@ -20,7 +21,7 @@ module bist_diagnostic (
     // 16-bit Galois LFSR: Polynomial x^16 + x^14 + x^13 + x^11 + 1
     // -------------------------------------------------------------------------
     reg [15:0] lfsr;
-    reg [15:0] test_cycles;
+    reg [10:0] test_cycles;
     reg        test_completed;
     reg        signature_valid;
 
@@ -30,26 +31,24 @@ module bist_diagnostic (
     always @(posedge clk) begin
         if (!rst_n) begin
             lfsr            <= 16'hACE1; // Non-zero seed
-            test_cycles     <= 16'd0;
+            test_cycles     <= 11'd0;
             test_completed  <= 1'b0;
             signature_valid <= 1'b0;
         end else if (bist_en) begin
-            if (test_cycles < 16'd1024) begin
-                test_cycles <= test_cycles + 16'd1;
+            if (test_cycles < 11'd1024) begin
+                test_cycles <= test_cycles + 11'd1;
                 // Galois LFSR feedback
                 lfsr <= {lfsr[14:0], 1'b0} ^ (lfsr[15] ? 16'hA011 : 16'h0000);
             end else begin
                 test_completed <= 1'b1;
-                // Check if internal datapath produced exact deterministic signature
                 if (lfsr == GOLDEN_SIG)
                     signature_valid <= 1'b1;
                 else
                     signature_valid <= 1'b0;
             end
         end else begin
-            // Normal operating mode: reset BIST counters
             lfsr            <= 16'hACE1;
-            test_cycles     <= 16'd0;
+            test_cycles     <= 11'd0;
             test_completed  <= 1'b0;
             signature_valid <= 1'b0;
         end
@@ -57,8 +56,6 @@ module bist_diagnostic (
 
     // -------------------------------------------------------------------------
     // 7-Segment Display Animator
-    // Standard 7-seg pinout (Active High):
-    // Bit 0 = a, Bit 1 = b, Bit 2 = c, Bit 3 = d, Bit 4 = e, Bit 5 = f, Bit 6 = g
     // -------------------------------------------------------------------------
     localparam [6:0] SEG_P = 7'b1110011; // 'P'
     localparam [6:0] SEG_A = 7'b1110111; // 'A'
@@ -78,10 +75,8 @@ module bist_diagnostic (
             bist_pass_led <= 1'b0;
         end else begin
             if (bist_en) begin
-                // In BIST mode:
                 if (test_completed && signature_valid) begin
                     bist_pass_led <= 1'b1;
-                    // Cycle characters "P - A - S - S" on each 1/4 second
                     if (frame_pulse) begin
                         if (seg_tick == 5'd15) begin
                             seg_tick <= 5'd0;
@@ -98,13 +93,11 @@ module bist_diagnostic (
                         2'd3: seven_seg_out <= SEG_S;
                     endcase
                 end else begin
-                    // Still calculating or failed
                     bist_pass_led <= 1'b0;
                     seven_seg_out <= SEG_MINUS;
                 end
             end else begin
-                // In Normal Video Mode: Show "3d"
-                bist_pass_led <= 1'b1; // Normal active status
+                bist_pass_led <= 1'b1;
                 if (frame_pulse) begin
                     if (seg_tick == 5'd30) begin
                         seg_tick <= 5'd0;
