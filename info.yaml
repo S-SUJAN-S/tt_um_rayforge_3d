@@ -1,0 +1,44 @@
+---
+project:
+  title: "RayForge-X: Ultra-Low-Power Pipelined 3D Sphere Tracing & CSG Raymarching Engine"
+  author: "Sujan S, Tejasvi R Shankar, Yogesh Mahesh Bisnal, Prathik P Kekare"
+  discord: ""
+  description: "A pipelined 3D Signed Distance Field (SDF) sphere tracing and procedural CSG raymarching processor on SkyWater 130nm CMOS. Directly outputs 640x480 @ 60Hz VGA with an infinite 3D perspective checkered ground plane, floating rotating 3D geometry (Torus, CSG Cube), dynamic cast drop shadows, specular Phong shading, atmospheric horizon fog, and built-in hardware self-test (BIST). Zero CPU, zero external RAM."
+  language: "Verilog"
+  clock_hz: 25175000
+
+  # How many tiles does this project need?
+  tiles: "1x1"
+
+  # Hardware peripherals used
+  how_it_works: "Implements standard 640x480 @ 60Hz VGA timing generator (25.175 MHz). Primary rays are generated per pixel and evaluated through a hybrid rendering datapath: (1) An analytical perspective ground plane engine computes floor intersection and receding checkerboard parity; (2) A 2-stage systolic sphere tracing pipeline evaluates 3D implicit surfaces using zero-multiplier Alpha-Max-Plus-Beta-Min (AMPBM) distance metrics; (3) Dynamic cast drop shadows occlude ground pixels; (4) Multi-mode Phong shading renders specular highlights, diffuse lighting, and horizon fog. A 16-bit Galois LFSR hardware BIST validates datapath integrity on startup."
+  how_to_test: "Connect standard Tiny VGA PMOD to uo_out pins. Power on the board with a 25.175 MHz clock. A rotating 3D torus hovering over an infinite receding perspective checkered floor with real-time drop shadows appears immediately on the screen. Toggle DIP switches: SW[0]=Auto-Orbit Animation, SW[1]=Geometry Select (0=Torus, 1=CSG Cube), SW[4:3]=Shading Mode (00=Phong, 01=Normal Map, 10=Fog, 11=Wireframe), SW[6:5]=Manual Light Angle, SW[7]=Hardware BIST Diagnostic."
+
+  # Pinout Documentation
+  inputs:
+    - "Auto-Animation Enable (DIP SW 0)"
+    - "Geometry Select: 0=3D Torus, 1=CSG Cube (DIP SW 1)"
+    - "Unused / Reserved (DIP SW 2)"
+    - "Shading Mode Bit 0 (DIP SW 3)"
+    - "Shading Mode Bit 1 (DIP SW 4)"
+    - "Manual Light Angle Bit 0 (DIP SW 5)"
+    - "Manual Light Angle Bit 1 (DIP SW 6)"
+    - "BIST Hardware Self-Test Enable (DIP SW 7)"
+  outputs:
+    - "R1 (Red MSB)"
+    - "G1 (Green MSB)"
+    - "B1 (Blue MSB)"
+    - "vsync (Vertical Sync, Active Low)"
+    - "R0 (Red LSB)"
+    - "G0 (Green LSB)"
+    - "B0 (Blue LSB)"
+    - "hsync (Horizontal Sync, Active Low)"
+  bidirectional:
+    - "7-Segment Cathode A"
+    - "7-Segment Cathode B"
+    - "7-Segment Cathode C"
+    - "7-Segment Cathode D"
+    - "7-Segment Cathode E"
+    - "7-Segment Cathode F"
+    - "7-Segment Cathode G"
+    - "BIST PASS Status LED"

@@ -1,0 +1,12 @@
+# Simulation Dumps & Intermediate Files
+*.vcd
+*.ppm
+sim_*
+runs/
+__pycache__/
+*.pyc
+
+# Local Test Outputs
+test/sim_build/
+test/__pycache__/
+test/results.xml

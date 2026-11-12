@@ -1,0 +1,30 @@
+name: test
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y iverilog make
+          python -m pip install --upgrade pip
+          if [ -f test/requirements.txt ]; then pip install -r test/requirements.txt; fi
+
+      - name: Run Cocotb Tests
+        run: |
+          cd test
+          make

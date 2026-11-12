@@ -1,0 +1,37 @@
+name: gds
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  gds:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Build GDS
+        uses: TinyTapeout/tt-gds-action@main
+        with:
+          pdk: sky130
+
+  precheck:
+    needs: gds
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Run Tiny Tapeout Precheck
+        uses: TinyTapeout/tt-gds-action/precheck@main
+
+  gl_test:
+    needs: gds
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Gate-level test
+        uses: TinyTapeout/tt-gds-action/gl_test@main
