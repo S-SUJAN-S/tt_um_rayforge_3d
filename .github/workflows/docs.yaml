@@ -2,19 +2,7 @@ name: docs
 
 on:
   push:
-    branches:
-      - main
-      - master
   workflow_dispatch:
-
-permissions:
-  contents: write
-  pages: write
-  id-token: write
-
-concurrency:
-  group: 'pages'
-  cancel-in-progress: false
 
 jobs:
   docs:
@@ -22,18 +10,8 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
-
-      - name: Setup Pages
-        uses: actions/configure-pages@v4
-
-      - name: Build Docs
-        uses: TinyTapeout/tt-gds-action/docs@main
-
-      - name: Upload Artifact
-        uses: actions/upload-pages-artifact@v3
         with:
-          path: '_site'
+          submodules: recursive
 
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Build docs
+        uses: TinyTapeout/tt-gds-action/docs@ttsky26e

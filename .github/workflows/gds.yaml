@@ -8,30 +8,40 @@ jobs:
   gds:
     runs-on: ubuntu-24.04
     steps:
-      - name: Checkout repo
+      - name: checkout repo
         uses: actions/checkout@v4
         with:
           submodules: recursive
 
       - name: Build GDS
-        uses: TinyTapeout/tt-gds-action@main
+        uses: TinyTapeout/tt-gds-action@ttsky26e
         with:
-          pdk: sky130
+          pdk: sky130A
 
   precheck:
     needs: gds
     runs-on: ubuntu-24.04
     steps:
       - name: Run Tiny Tapeout Precheck
-        uses: TinyTapeout/tt-gds-action/precheck@main
+        uses: TinyTapeout/tt-gds-action/precheck@ttsky26e
 
   gl_test:
     needs: gds
     runs-on: ubuntu-24.04
     steps:
-      - name: Checkout repo
+      - name: checkout repo
         uses: actions/checkout@v4
         with:
           submodules: recursive
-      - name: Gate-level test
-        uses: TinyTapeout/tt-gds-action/gl_test@main
+
+      - name: GL test
+        uses: TinyTapeout/tt-gds-action/gl_test@ttsky26e
+
+  viewer:
+    needs: gds
+    runs-on: ubuntu-24.04
+    permissions:
+      pages: write
+      id-token: write
+    steps:
+      - uses: TinyTapeout/tt-gds-action/viewer@ttsky26e

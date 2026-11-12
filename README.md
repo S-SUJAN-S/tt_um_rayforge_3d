@@ -181,6 +181,7 @@ RayForge-X uses the official **Tiny VGA PMOD** pin mapping on `uo_out`:
 ├── docs/
 │   └── info.md               # Project datasheet details & test instructions
 ├── src/
+│   ├── config.json           # OpenLane physical design configuration
 │   ├── tt_um_rayforge_3d.v   # Top-level Tiny Tapeout ASIC wrapper & I/O mux
 │   ├── vga_timing_gen.v      # Standard 640x480 @ 60Hz timing generator (25.175 MHz)
 │   ├── perspective_ground.v  # Analytical 3D floor engine & dynamic shadow receiver
@@ -189,12 +190,12 @@ RayForge-X uses the official **Tiny VGA PMOD** pin mapping on `uo_out`:
 │   ├── phong_shading.v       # Multi-mode Phong shading, specular glints & palette
 │   └── bist_diagnostic.v     # 16-bit Galois LFSR self-test & 7-segment driver
 ├── test/
+│   ├── tb.v                  # Tiny Tapeout gate-level testbench wrapper
 │   ├── tb_rayforge_3d.v      # Standalone cycle-accurate Verilog testbench
 │   ├── test.py               # Cocotb 2.1.0 Python regression test suite
 │   ├── Makefile              # Cocotb simulator makefile
 │   └── requirements.txt      # Python dependencies
-├── config.json               # OpenLane physical design configuration
-├── info.yaml                 # Official Tiny Tapeout shuttle manifest
+├── info.yaml                 # Official Tiny Tapeout shuttle manifest (schema v6)
 ├── rayforge_x_render.png     # Verified 640x480 @ 60Hz rendered visual output
 ├── verilog_render.png        # Hardware raster output (3D Torus)
 ├── verilog_render_cube.png   # Hardware raster output (3D Cube)
@@ -204,14 +205,10 @@ RayForge-X uses the official **Tiny VGA PMOD** pin mapping on `uo_out`:
 
 ---
 
-## 👥 Authors & Academic Affiliation
+## 👥 Authors
 
-### Project Team (Section C — Group 6):
-1. **Sujan S.** (`1RV23EC158`) — Team Lead & RTL Architect
-2. **Tejasvi R. Shankar** (`1RV23EC172`) — Verification & Testbench Lead
-3. **Yogesh Mahesh Bisnal** (`1RV23EC190`) — Physical Design & OpenLane Sign-off
-4. **Prathik P. Kekare** (`1RV23EC195`) — System Integration & Diagnostic Architecture
+1. **Sujan S.**
+2. **Tejasvi R. Shankar**
+3. **Yogesh Mahesh Bisnal**
+4. **Prathik P. Kekare**
 
-* **Department of Electronics and Communication Engineering (ECE)**
-* **R.V. College of Engineering® (RVCE)**, Bengaluru, Karnataka, India
-* **Target Shuttle:** Tiny Tapeout `ttsky26e` / `ttsky26d` (SkyWater 130nm)
