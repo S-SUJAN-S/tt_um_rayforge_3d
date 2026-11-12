@@ -47,13 +47,12 @@ The visual output generated directly by the bit-accurate hardware pipeline:
 +------------------------------------+           +----------------------------------------+
 | 2A. ANALYTICAL GROUND PLANE ENGINE |           | 2B. RAY GENERATION & ROTATION          |
 | - Horizon line at Y = 230          |           | - Screen centered offsets (dx, dy)     |
-| - Piecewise perspective step LUT   |           | - Early bounding box rejection filter  |
-|   divider during HBLANK (15 cyc)   |           | - Zero-multiplier 45-deg ray rotation: |
-|   k_step = 16384 / delta_y         |           |   R_45 = (X + Z) - ((X + Z) >>> 2)     |
-| - Non-tearing pixel accumulator    |           | - Transforms camera ray into canonical |
-|   u_accum <= u_accum + k_step      |           |   object frame once per pixel          |
-| - Checkered floor parity           |           +----------------------------------------+
-| - Orbiting dynamic drop shadow     |                                 |
+| - 8-level piecewise perspective LUT|           | - Early bounding box rejection filter  |
+|   k_step ~ 2048 / delta_y (0-FF)   |           | - Zero-multiplier 45-deg ray rotation: |
+| - Non-tearing pixel accumulator    |           |   R_45 = (X + Z) - ((X + Z) >>> 2)     |
+|   u_accum <= u_accum + k_step      |           | - Transforms camera ray into canonical |
+| - Checkered floor parity           |           |   object frame once per pixel          |
+| - Orbiting dynamic drop shadow     |           +----------------------------------------+                                 |
 +------------------------------------+                                 v
                    |                             +----------------------------------------+
                    |                             | 3. 2-STAGE SYSTOLIC SPHERE TRACER      |
