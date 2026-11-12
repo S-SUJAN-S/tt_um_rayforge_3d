@@ -1,11 +1,9 @@
 // =============================================================================
 // File: sphere_tracer_pipeline.v
 // Module: sphere_tracer_pipeline
-// Description: Systolic 3D Ray-Marching & Isometric Geometry Pipeline
-//              Continuous sub-pixel resolution (zero blockiness), true 3D
-//              isometric projection for CSG Cube, and smooth metallic Torus.
+// Description: Ultra-compact, zero-multiplier 3D sphere tracer & isometric engine
+//              Optimized for 1x1 SkyWater 130nm tile (<9,000 um^2 cell area)
 // Author: Sujan S & Team (RVCE ECE)
-// Target: SkyWater 130nm CMOS (Tiny Tapeout 1x1 Standard Tile)
 // =============================================================================
 
 `default_nettype none
@@ -26,13 +24,13 @@ module sphere_tracer_pipeline (
 );
 
     // =========================================================================
-    // STAGE 0: Continuous Screen Coordinates & Spatial Bounding
+    // STAGE 0: Centered Coordinates & Zero-Multiplier Octagonal Norm
     // =========================================================================
     wire signed [9:0] dx_center = $signed(pixel_x) - 10'sd320;
     wire signed [9:0] dy_center = 10'sd190 - $signed(pixel_y);
-    wire signed [9:0] cdy       = $signed(pixel_y) - 10'sd190; // Centered at y=190
+    wire signed [9:0] cdy       = $signed(pixel_y) - 10'sd190;
 
-    // Bounding Window: Strict bounds prevent any overflow wrapping
+    // Fast bounding box: |dx| <= 115, |dy| <= 115
     wire [8:0] abs_dx_wide = dx_center[9] ? (-dx_center[8:0]) : dx_center[8:0];
     wire [8:0] abs_dy_wide = dy_center[9] ? (-dy_center[8:0]) : dy_center[8:0];
 
@@ -42,46 +40,31 @@ module sphere_tracer_pipeline (
     wire [7:0] abs_dx = abs_dx_wide[7:0];
     wire [7:0] abs_dy = abs_dy_wide[7:0];
 
-    // Multiplierless 16-gon norm for Torus curvature in Stage 0/1
+    // Zero-Multiplier Octagonal Norm: r_xy = max(a, b) + (3/8)*min(a, b)
+    // max_v + ((min_v << 1) + min_v) >> 3
     wire [7:0] max_v = (abs_dx >= abs_dy) ? abs_dx : abs_dy;
     wire [7:0] min_v = (abs_dx >= abs_dy) ? abs_dy : abs_dx;
-    wire [11:0] norm_res1 = {4'b0, max_v} + (({4'b0, min_v} * 3'd3) >> 4);
-    wire [11:0] norm_res2 = (({4'b0, max_v} * 4'd12) >> 4) + (({4'b0, min_v} * 4'd11) >> 4);
-    wire [7:0] r_xy = ({min_v, 1'b0} <= max_v) ? norm_res1[7:0] : norm_res2[7:0];
+    wire [8:0] min_x3 = {min_v, 1'b0} + {1'b0, min_v}; // min * 3
+    wire [7:0] r_xy   = max_v + min_x3[8:3];           // max + min*3/8
+
+    // Delta from major torus ring (R = 75): minor radius r = 35
     wire signed [8:0] delta_r = $signed({1'b0, r_xy}) - 9'sd75;
 
-    // Continuous 8-bit squares for Torus boundary (0 standard multipliers)
-    wire [13:0] dx_sq = abs_dx * abs_dx;
-    wire [13:0] dy_sq = abs_dy * abs_dy;
-    wire [14:0] r_sq  = dx_sq + dy_sq;
-
     // 3D Isometric Cube Geometry bounds (Half-width W=64, s=32, H=64)
-    wire [7:0]  adx = abs_dx;
-    wire [6:0]  adx_slope = adx[7:1]; // adx >> 1
-    wire signed [8:0] top_upper = -9'sd32 + $signed({2'b0, adx_slope});
-    wire signed [8:0] top_lower =  9'sd32 - $signed({2'b0, adx_slope});
+    wire [6:0]  adx_slope = abs_dx[7:1]; // abs_dx >> 1
+    wire signed [8:0] top_upper   = -9'sd32 + $signed({2'b0, adx_slope});
+    wire signed [8:0] top_lower   =  9'sd32 - $signed({2'b0, adx_slope});
     wire signed [8:0] front_lower = top_lower + 9'sd64;
-
-    // SDF Evaluator instance for verification & corner distance checking
-    wire signed [7:0] sdf_dist;
-    sdf_engine u_sdf (
-        .px      (dx_center[7:0]),
-        .py      (dy_center[7:0]),
-        .pz      (8'sd0),
-        .geom_sel(geom_sel),
-        .dist_out(sdf_dist)
-    );
 
     // =========================================================================
     // PIPELINE STAGE 1: Clocked Registers (Cycle 1)
     // =========================================================================
     reg signed [9:0] s1_dx, s1_dy, s1_cdy;
-    reg [14:0]       s1_r_sq;
+    reg [7:0]        s1_r_xy;
     reg signed [8:0] s1_delta_r;
     reg [7:0]        s1_adx;
     reg signed [8:0] s1_top_upper, s1_top_lower, s1_front_lower;
     reg              s1_geom_sel;
-    reg [2:0]        s1_rot_angle;
     reg              s1_active;
     reg              s1_torus_bounds, s1_cube_bounds;
 
@@ -90,14 +73,13 @@ module sphere_tracer_pipeline (
             s1_dx           <= 10'sd0;
             s1_dy           <= 10'sd0;
             s1_cdy          <= 10'sd0;
-            s1_r_sq         <= 15'd0;
+            s1_r_xy         <= 8'd0;
             s1_delta_r      <= 9'sd0;
             s1_adx          <= 8'd0;
             s1_top_upper    <= 9'sd0;
             s1_top_lower    <= 9'sd0;
             s1_front_lower  <= 9'sd0;
             s1_geom_sel     <= 1'b0;
-            s1_rot_angle    <= 3'd0;
             s1_active       <= 1'b0;
             s1_torus_bounds <= 1'b0;
             s1_cube_bounds  <= 1'b0;
@@ -105,14 +87,13 @@ module sphere_tracer_pipeline (
             s1_dx           <= dx_center;
             s1_dy           <= dy_center;
             s1_cdy          <= cdy;
-            s1_r_sq         <= r_sq;
+            s1_r_xy         <= r_xy;
             s1_delta_r      <= delta_r;
-            s1_adx          <= adx;
+            s1_adx          <= abs_dx;
             s1_top_upper    <= top_upper;
             s1_top_lower    <= top_lower;
             s1_front_lower  <= front_lower;
             s1_geom_sel     <= geom_sel;
-            s1_rot_angle    <= rot_angle;
             s1_active       <= video_active;
             s1_torus_bounds <= torus_in_bounds;
             s1_cube_bounds  <= cube_in_bounds;
@@ -120,17 +101,18 @@ module sphere_tracer_pipeline (
     end
 
     // =========================================================================
-    // PIPELINE STAGE 2: Surface Detection & Normal Formatting (Cycle 2)
+    // PIPELINE STAGE 2: Zero-Multiplier Surface Detection & Normals (Cycle 2)
     // =========================================================================
-    // 1. Torus Surface & Continuous Metallic Normal
-    wire torus_hit = (s1_r_sq >= 15'd1600) && (s1_r_sq <= 15'd12100) && s1_torus_bounds;
-    wire signed [15:0] t_nx_wide = s1_dx * s1_delta_r;
-    wire signed [15:0] t_ny_wide = s1_dy * s1_delta_r;
-    wire signed [8:0]  t_nx_div  = t_nx_wide >>> 8;
-    wire signed [8:0]  t_ny_div  = t_ny_wide >>> 8;
+    // 1. Torus Surface: Tube boundary is 40 <= r_xy <= 110
+    wire torus_hit = (s1_r_xy >= 8'd40) && (s1_r_xy <= 8'd110) && s1_torus_bounds;
 
-    wire signed [4:0] torus_nx = (t_nx_div > 9'sd14) ? 5'sd14 : (t_nx_div < -9'sd15) ? -5'sd15 : t_nx_div[4:0];
-    wire signed [4:0] torus_ny = (t_ny_div > 9'sd14) ? 5'sd14 : (t_ny_div < -9'sd15) ? -5'sd15 : t_ny_div[4:0];
+    // Zero-multiplier metallic normal:
+    // Scale X/Y by 1/8 and apply radial direction sign:
+    wire signed [4:0] dx_scaled = s1_dx[7:3];
+    wire signed [4:0] dy_scaled = s1_dy[7:3];
+    wire signed [4:0] torus_nx = (s1_delta_r >= 9'sd0) ? dx_scaled : (-dx_scaled);
+    wire signed [4:0] torus_ny = (s1_delta_r >= 9'sd0) ? dy_scaled : (-dy_scaled);
+
     wire [6:0] abs_dr = s1_delta_r[8] ? (-s1_delta_r[6:0]) : s1_delta_r[6:0];
     wire signed [4:0] torus_nz = (abs_dr < 7'd35) ? $signed({1'b0, (7'd35 - abs_dr) >> 2}) : 5'sd0;
 
@@ -143,17 +125,14 @@ module sphere_tracer_pipeline (
     reg signed [4:0] cube_nx, cube_ny, cube_nz;
     always @(*) begin
         if (cube_top) begin
-            // Top Face: Points up and tilted towards celestial light
             cube_nx = 5'sd0;
             cube_ny = 5'sd6;
             cube_nz = -5'sd4;
         end else if (cube_left) begin
-            // Front-Left Face: Points left and forward
             cube_nx = -5'sd5;
             cube_ny = 5'sd1;
             cube_nz = -5'sd3;
         end else begin
-            // Front-Right Face: Points right and forward (diffuse shade)
             cube_nx = 5'sd5;
             cube_ny = -5'sd1;
             cube_nz = -5'sd3;

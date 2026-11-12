@@ -31,33 +31,31 @@ module phong_shading (
     output reg  [1:0]  blue_out        // 2-bit Blue DAC
 );
 
-    // Surface Normal Vector (sign-extended 6-bit)
-    wire signed [5:0] norm_x = {{2{hit_px[7]}}, hit_px[6:3]};
-    wire signed [5:0] norm_y = {{2{hit_py[7]}}, hit_py[6:3]};
-    wire signed [5:0] norm_z = {{2{hit_pz[7]}}, hit_pz[6:3]};
+    // Compact 4-bit signed normal components (-8 to +7)
+    wire signed [3:0] nx = hit_px[6:3];
+    wire signed [3:0] ny = hit_py[6:3];
+    wire signed [3:0] nz = hit_pz[6:3];
 
-    // Zero-multiplier shift-add dot product: N . L
-    wire signed [7:0] nx_times_4 = norm_x <<< 2;
-    wire signed [7:0] ny_times_4 = norm_y <<< 2;
-    wire signed [7:0] nz_times_4 = norm_z <<< 2;
-    wire signed [7:0] nx_times_3 = (norm_x <<< 1) + norm_x;
-    wire signed [7:0] nz_times_3 = (norm_z <<< 1) + norm_z;
+    // Shift-add dot product: N . L
+    wire signed [5:0] nx_x2 = {{2{nx[3]}}, nx} <<< 1;
+    wire signed [5:0] ny_x2 = {{2{ny[3]}}, ny} <<< 1;
+    wire signed [5:0] nz_x2 = {{2{nz[3]}}, nz} <<< 1;
 
-    reg signed [8:0] total_dot;
+    reg signed [6:0] total_dot;
     always @(*) begin
         case (light_angle)
-            3'd0: total_dot = nx_times_4 + ny_times_4;
-            3'd1: total_dot = nx_times_3 + nz_times_3 + ny_times_4;
-            3'd2: total_dot = nz_times_4 + ny_times_4;
-            3'd3: total_dot = -nx_times_3 + nz_times_3 + ny_times_4;
-            3'd4: total_dot = -nx_times_4 + ny_times_4;
-            3'd5: total_dot = -nx_times_3 - nz_times_3 + ny_times_4;
-            3'd6: total_dot = -nz_times_4 + ny_times_4;
-            3'd7: total_dot = nx_times_3 - nz_times_3 + ny_times_4;
+            3'd0: total_dot = nx_x2 + ny_x2;
+            3'd1: total_dot = nx + nz + ny_x2;
+            3'd2: total_dot = nz_x2 + ny_x2;
+            3'd3: total_dot = -nx + nz + ny_x2;
+            3'd4: total_dot = -nx_x2 + ny_x2;
+            3'd5: total_dot = -nx - nz + ny_x2;
+            3'd6: total_dot = -nz_x2 + ny_x2;
+            3'd7: total_dot = nx - nz + ny_x2;
         endcase
     end
 
-    wire specular_hit = (total_dot > 9'sd26);
+    wire specular_hit = (total_dot > 7'sd14);
 
     always @(posedge clk) begin
         if (!rst_n || !video_active) begin
@@ -67,10 +65,10 @@ module phong_shading (
         end else if (hit_in) begin
             case (shading_mode)
                 2'b01: begin
-                    // MODE 01: Normal Map Visualizer (XYZ -> RGB)
-                    red_out   <= norm_x[3:2] + 2'b10;
-                    green_out <= norm_y[3:2] + 2'b10;
-                    blue_out  <= norm_z[3:2] + 2'b10;
+                    // MODE 01: Normal Map Visualizer
+                    red_out   <= nx[3:2] + 2'b10;
+                    green_out <= ny[3:2] + 2'b10;
+                    blue_out  <= nz[3:2] + 2'b10;
                 end
                 2'b10: begin
                     // MODE 10: Depth Fog Visualizer
@@ -85,28 +83,28 @@ module phong_shading (
                     blue_out  <= 2'b00;
                 end
                 default: begin
-                    // MODE 00: Full 7-Level Metallic Phong Shading Palette
+                    // MODE 00: 7-Level Metallic Phong Shading Palette
                     if (specular_hit) begin
                         red_out   <= 2'b11; // 1. Brilliant Specular White Glint (#FFFFFF)
                         green_out <= 2'b11;
                         blue_out  <= 2'b11;
-                    end else if (total_dot > 9'sd16) begin
+                    end else if (total_dot > 7'sd8) begin
                         red_out   <= 2'b01; // 2. Radiant Cyan (#55FFFF)
                         green_out <= 2'b11;
                         blue_out  <= 2'b11;
-                    end else if (total_dot > 9'sd8) begin
+                    end else if (total_dot > 7'sd4) begin
                         red_out   <= 2'b00; // 3. Ice Blue (#00AAFF)
                         green_out <= 2'b10;
                         blue_out  <= 2'b11;
-                    end else if (total_dot > 9'sd0) begin
+                    end else if (total_dot > 7'sd0) begin
                         red_out   <= 2'b00; // 4. Metallic Teal (#00AAAA)
                         green_out <= 2'b10;
                         blue_out  <= 2'b10;
-                    end else if (total_dot > -9'sd8) begin
+                    end else if (total_dot > -7'sd4) begin
                         red_out   <= 2'b00; // 5. Royal Cobalt (#0055AA)
                         green_out <= 2'b01;
                         blue_out  <= 2'b10;
-                    end else if (total_dot > -9'sd18) begin
+                    end else if (total_dot > -7'sd8) begin
                         red_out   <= 2'b00; // 6. Deep Emerald (#005555)
                         green_out <= 2'b01;
                         blue_out  <= 2'b01;
@@ -119,12 +117,10 @@ module phong_shading (
             endcase
         end else if (is_floor) begin
             if (fog_level >= 2'b10) begin
-                // Horizon fog blend: Eliminates high-frequency spatial aliasing / moire
                 red_out   <= 2'b00;
                 green_out <= 2'b01;
                 blue_out  <= 2'b10;
             end else if (in_shadow) begin
-                // Deep elliptical drop shadow on floor
                 if (floor_check) begin
                     red_out   <= 2'b01;
                     green_out <= 2'b01;
@@ -135,7 +131,6 @@ module phong_shading (
                     blue_out  <= 2'b01;
                 end
             end else begin
-                // Perspective checkerboard floor
                 if (floor_check) begin
                     red_out   <= 2'b10;
                     green_out <= 2'b10;

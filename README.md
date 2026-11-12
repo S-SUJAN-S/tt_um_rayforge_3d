@@ -4,7 +4,7 @@
 [![Icarus Verilog](https://img.shields.io/badge/Icarus%20Verilog-5%2F5%20Passing-brightgreen.svg)](#hardware-verification)
 [![Synthesis Sign-Off](https://img.shields.io/badge/Yosys%20Synthesis-0%20Problems%20%7C%200%20Latches-brightgreen.svg)](#physical-implementation--synthesis)
 [![Silicon Target](https://img.shields.io/badge/Foundry-SkyWater%20130nm%20CMOS-blue.svg)](https://skywater-pdk.readthedocs.io/)
-[![Tiny Tapeout](https://img.shields.io/badge/Shuttle-ttsky26e%20%2F%20ttsky26d%20(2x2%20Tile)-orange.svg)](https://tinytapeout.com/)
+[![Tiny Tapeout](https://img.shields.io/badge/Shuttle-ttsky26e%20%2F%20ttsky26d%20(1x1%20Tile)-orange.svg)](https://tinytapeout.com/)
 
 **RayForge-X** is an ultra-low-power, deeply pipelined, single-cycle-throughput **3D Sphere Tracing & CSG Raymarching ASIC Processor** fabricated on the open-source **SkyWater 130nm CMOS** process (`sky130_fd_sc_hd`) for Tiny Tapeout shuttle `ttsky26e` (and `ttsky26d`).
 
