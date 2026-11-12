@@ -52,7 +52,7 @@ module sphere_tracer_pipeline (
     reg signed [9:0] s1_dx, s1_dy;
     reg [7:0]        s1_r_xy;
     reg signed [8:0] s1_delta_r;
-    reg [6:0]        s1_adx;
+    reg [5:0]        s1_adx;
     reg              s1_geom_sel;
     reg              s1_active;
     reg              s1_torus_bounds, s1_cube_bounds;
@@ -63,7 +63,7 @@ module sphere_tracer_pipeline (
             s1_dy           <= 10'sd0;
             s1_r_xy         <= 8'd0;
             s1_delta_r      <= 9'sd0;
-            s1_adx          <= 7'd0;
+            s1_adx          <= 6'd0;
             s1_geom_sel     <= 1'b0;
             s1_active       <= 1'b0;
             s1_torus_bounds <= 1'b0;
@@ -73,7 +73,7 @@ module sphere_tracer_pipeline (
             s1_dy           <= dy_center;
             s1_r_xy         <= r_xy;
             s1_delta_r      <= delta_r;
-            s1_adx          <= abs_dx[6:0];
+            s1_adx          <= abs_dx[5:0];
             s1_geom_sel     <= geom_sel;
             s1_active       <= video_active;
             s1_torus_bounds <= torus_in_bounds;
@@ -94,18 +94,19 @@ module sphere_tracer_pipeline (
     wire signed [4:0] torus_ny = s1_delta_r[8] ? (-dy_scaled) : dy_scaled;
 
     wire [6:0] abs_dr = s1_delta_r[8] ? (-s1_delta_r[6:0]) : s1_delta_r[6:0];
-    wire signed [4:0] torus_nz = (abs_dr < 7'd35) ? $signed({1'b0, (7'd35 - abs_dr) >> 2}) : 5'sd0;
+    wire [4:0] torus_nz_mag = (7'd35 - abs_dr) >> 2;
+    wire signed [4:0] torus_nz = (abs_dr < 7'd35) ? $signed({1'b0, torus_nz_mag[3:0]}) : 5'sd0;
 
-    // 2. 3D Isometric Cube Surface (Computed combinationally in Stage 2 from s1_adx and -s1_dy)
-    wire signed [8:0] cdy = -s1_dy[8:0]; // cdy is opposite of dy_center
-    wire [5:0]  adx_slope   = s1_adx[6:1]; // adx >> 1
-    wire signed [8:0] top_upper   = -9'sd32 + $signed({3'b0, adx_slope});
-    wire signed [8:0] top_lower   =  9'sd32 - $signed({3'b0, adx_slope});
-    wire signed [8:0] front_lower = top_lower + 9'sd64;
+    // 2. 3D Isometric Cube Surface (7-bit compact arithmetic)
+    wire signed [7:0] cdy = -s1_dy[7:0];
+    wire [4:0]  adx_slope = s1_adx[5:1];
+    wire signed [6:0] top_upper   = -7'sd32 + $signed({2'b0, adx_slope});
+    wire signed [6:0] top_lower   =  7'sd32 - $signed({2'b0, adx_slope});
+    wire signed [7:0] front_lower = {top_lower[6], top_lower} + 8'sd64;
 
-    wire cube_top   = (cdy >= top_upper) && (cdy < top_lower) && s1_cube_bounds;
-    wire cube_left  = (cdy >= top_lower) && (cdy <= front_lower) && (s1_dx < 10'sd0) && s1_cube_bounds;
-    wire cube_right = (cdy >= top_lower) && (cdy <= front_lower) && (s1_dx >= 10'sd0) && s1_cube_bounds;
+    wire cube_top   = (cdy >= {{1{top_upper[6]}}, top_upper}) && (cdy < {{1{top_lower[6]}}, top_lower}) && s1_cube_bounds;
+    wire cube_left  = (cdy >= {{1{top_lower[6]}}, top_lower}) && (cdy <= front_lower) && (s1_dx < 10'sd0) && s1_cube_bounds;
+    wire cube_right = (cdy >= {{1{top_lower[6]}}, top_lower}) && (cdy <= front_lower) && (s1_dx >= 10'sd0) && s1_cube_bounds;
     wire cube_hit   = cube_top | cube_left | cube_right;
 
     reg signed [4:0] cube_nx, cube_ny, cube_nz;

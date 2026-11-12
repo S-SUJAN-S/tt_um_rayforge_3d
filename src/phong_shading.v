@@ -35,25 +35,29 @@ module phong_shading (
     wire signed [3:0] ny = hit_py[6:3];
     wire signed [3:0] nz = hit_pz[6:3];
 
-    // Shift-add dot product: N . L
-    wire signed [5:0] nx_x2 = {{2{nx[3]}}, nx} <<< 1;
-    wire signed [5:0] ny_x2 = {{2{ny[3]}}, ny} <<< 1;
-    wire signed [5:0] nz_x2 = {{2{nz[3]}}, nz} <<< 1;
+    // Shared shift-add terms with explicit sign-extension
+    wire signed [5:0] nx_ext = {{2{nx[3]}}, nx};
+    wire signed [5:0] nz_ext = {{2{nz[3]}}, nz};
+    wire signed [5:0] nx_x2  = nx_ext <<< 1;
+    wire signed [5:0] ny_x2  = {{2{ny[3]}}, ny} <<< 1;
+    wire signed [5:0] nz_x2  = nz_ext <<< 1;
 
-    reg signed [6:0] total_dot;
+    // Common term extraction: ny_x2 is present in ALL 8 lighting angles
+    reg signed [5:0] dot_xz;
     always @(*) begin
         case (light_angle)
-            3'd0: total_dot = nx_x2 + ny_x2;
-            3'd1: total_dot = nx + nz + ny_x2;
-            3'd2: total_dot = nz_x2 + ny_x2;
-            3'd3: total_dot = -nx + nz + ny_x2;
-            3'd4: total_dot = -nx_x2 + ny_x2;
-            3'd5: total_dot = -nx - nz + ny_x2;
-            3'd6: total_dot = -nz_x2 + ny_x2;
-            3'd7: total_dot = nx - nz + ny_x2;
+            3'd0: dot_xz = nx_x2;
+            3'd1: dot_xz = nx_ext + nz_ext;
+            3'd2: dot_xz = nz_x2;
+            3'd3: dot_xz = -nx_ext + nz_ext;
+            3'd4: dot_xz = -nx_x2;
+            3'd5: dot_xz = -nx_ext - nz_ext;
+            3'd6: dot_xz = -nz_x2;
+            3'd7: dot_xz = nx_ext - nz_ext;
         endcase
     end
 
+    wire signed [6:0] total_dot = {{dot_xz[5]}, dot_xz} + {{ny_x2[5]}, ny_x2};
     wire specular_hit = (total_dot > 7'sd14);
 
     always @(posedge clk) begin
