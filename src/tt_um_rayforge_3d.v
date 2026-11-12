@@ -139,7 +139,7 @@ module tt_um_rayforge_3d (
     // =========================================================================
     // 7. PIPELINE LATENCY ALIGNMENT DELAY REGISTERS
     // =========================================================================
-    // Sphere tracer has 2 cycles latency. Delay ground by 1 cycle (1 + 1 = 2):
+    // Delay ground by 1 cycle to match sphere tracer stage 2:
     reg [4:0] floor_d1;
     always @(posedge clk) begin
         if (!clean_rst_n) floor_d1 <= 5'd0;
@@ -151,16 +151,15 @@ module tt_um_rayforge_3d (
     wire       aligned_floor_shadow = floor_d1[2];
     wire [1:0] aligned_floor_fog    = floor_d1[1:0];
 
-    // Delay pixel coordinates by 2 cycles:
-    reg [9:0] px_d1, px_d2;
-    reg [9:0] py_d1, py_d2;
+    // Delay only 2 bits of pixel_y for sky band (saving 36 flip-flops!):
+    reg [1:0] sky_d1, sky_d2;
     always @(posedge clk) begin
         if (!clean_rst_n) begin
-            px_d1 <= 10'd0; px_d2 <= 10'd0;
-            py_d1 <= 10'd0; py_d2 <= 10'd0;
+            sky_d1 <= 2'b00;
+            sky_d2 <= 2'b00;
         end else begin
-            px_d1 <= pixel_x; px_d2 <= px_d1;
-            py_d1 <= pixel_y; py_d2 <= py_d1;
+            sky_d1 <= pixel_y[7:6];
+            sky_d2 <= sky_d1;
         end
     end
 
@@ -184,8 +183,7 @@ module tt_um_rayforge_3d (
         .fog_level   (aligned_floor_fog),
         .light_angle (active_light),
         .shading_mode(shading_mode),
-        .pixel_x     (px_d2),
-        .pixel_y     (py_d2),
+        .sky_band    (sky_d2),
         .video_active(pipe_active),
         .red_out     (red_sig),
         .green_out   (green_sig),
@@ -238,8 +236,6 @@ module tt_um_rayforge_3d (
     assign uo_out[6] = blue_sig[0];  // B0 (Blue LSB)
     assign uo_out[7] = core_hsync;   // HSYNC (Active Low)
 
-    // uio_out[6:0] = 7-Segment display cathodes
-    // uio_out[7]   = BIST PASS Status LED
     assign uio_out = {bist_pass, seg_cathodes};
 
 endmodule

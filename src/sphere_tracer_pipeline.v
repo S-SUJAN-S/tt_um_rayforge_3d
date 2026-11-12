@@ -24,46 +24,35 @@ module sphere_tracer_pipeline (
 );
 
     // =========================================================================
-    // STAGE 0: Centered Coordinates & Zero-Multiplier Octagonal Norm
+    // STAGE 0: Centered Coordinates & Fast Norm
     // =========================================================================
     wire signed [9:0] dx_center = $signed(pixel_x) - 10'sd320;
     wire signed [9:0] dy_center = 10'sd190 - $signed(pixel_y);
-    wire signed [9:0] cdy       = $signed(pixel_y) - 10'sd190;
 
-    // Fast bounding box: |dx| <= 115, |dy| <= 115
     wire [8:0] abs_dx_wide = dx_center[9] ? (-dx_center[8:0]) : dx_center[8:0];
     wire [8:0] abs_dy_wide = dy_center[9] ? (-dy_center[8:0]) : dy_center[8:0];
 
     wire torus_in_bounds = (abs_dx_wide <= 9'd115) && (abs_dy_wide <= 9'd115);
-    wire cube_in_bounds  = (abs_dx_wide <= 9'd64) && (cdy >= -10'sd40) && (cdy <= 10'sd100);
+    wire cube_in_bounds  = (abs_dx_wide <= 9'd64) && (dy_center <= 10'sd40) && (dy_center >= -10'sd100);
 
     wire [7:0] abs_dx = abs_dx_wide[7:0];
     wire [7:0] abs_dy = abs_dy_wide[7:0];
 
-    // Zero-Multiplier Octagonal Norm: r_xy = max(a, b) + (3/8)*min(a, b)
-    // max_v + ((min_v << 1) + min_v) >> 3
+    // Fast Octagonal Norm: r_xy = max(a, b) + (min(a, b) >> 1)
     wire [7:0] max_v = (abs_dx >= abs_dy) ? abs_dx : abs_dy;
     wire [7:0] min_v = (abs_dx >= abs_dy) ? abs_dy : abs_dx;
-    wire [8:0] min_x3 = {min_v, 1'b0} + {1'b0, min_v}; // min * 3
-    wire [7:0] r_xy   = max_v + min_x3[8:3];           // max + min*3/8
+    wire [7:0] r_xy   = max_v + {1'b0, min_v[7:1]};
 
     // Delta from major torus ring (R = 75): minor radius r = 35
     wire signed [8:0] delta_r = $signed({1'b0, r_xy}) - 9'sd75;
 
-    // 3D Isometric Cube Geometry bounds (Half-width W=64, s=32, H=64)
-    wire [6:0]  adx_slope = abs_dx[7:1]; // abs_dx >> 1
-    wire signed [8:0] top_upper   = -9'sd32 + $signed({2'b0, adx_slope});
-    wire signed [8:0] top_lower   =  9'sd32 - $signed({2'b0, adx_slope});
-    wire signed [8:0] front_lower = top_lower + 9'sd64;
-
     // =========================================================================
-    // PIPELINE STAGE 1: Clocked Registers (Cycle 1)
+    // PIPELINE STAGE 1: Minimal Clocked Registers (Cycle 1)
     // =========================================================================
-    reg signed [9:0] s1_dx, s1_dy, s1_cdy;
+    reg signed [9:0] s1_dx, s1_dy;
     reg [7:0]        s1_r_xy;
     reg signed [8:0] s1_delta_r;
-    reg [7:0]        s1_adx;
-    reg signed [8:0] s1_top_upper, s1_top_lower, s1_front_lower;
+    reg [6:0]        s1_adx;
     reg              s1_geom_sel;
     reg              s1_active;
     reg              s1_torus_bounds, s1_cube_bounds;
@@ -72,13 +61,9 @@ module sphere_tracer_pipeline (
         if (!rst_n) begin
             s1_dx           <= 10'sd0;
             s1_dy           <= 10'sd0;
-            s1_cdy          <= 10'sd0;
             s1_r_xy         <= 8'd0;
             s1_delta_r      <= 9'sd0;
-            s1_adx          <= 8'd0;
-            s1_top_upper    <= 9'sd0;
-            s1_top_lower    <= 9'sd0;
-            s1_front_lower  <= 9'sd0;
+            s1_adx          <= 7'd0;
             s1_geom_sel     <= 1'b0;
             s1_active       <= 1'b0;
             s1_torus_bounds <= 1'b0;
@@ -86,13 +71,9 @@ module sphere_tracer_pipeline (
         end else begin
             s1_dx           <= dx_center;
             s1_dy           <= dy_center;
-            s1_cdy          <= cdy;
             s1_r_xy         <= r_xy;
             s1_delta_r      <= delta_r;
-            s1_adx          <= abs_dx;
-            s1_top_upper    <= top_upper;
-            s1_top_lower    <= top_lower;
-            s1_front_lower  <= front_lower;
+            s1_adx          <= abs_dx[6:0];
             s1_geom_sel     <= geom_sel;
             s1_active       <= video_active;
             s1_torus_bounds <= torus_in_bounds;
@@ -107,19 +88,24 @@ module sphere_tracer_pipeline (
     wire torus_hit = (s1_r_xy >= 8'd40) && (s1_r_xy <= 8'd110) && s1_torus_bounds;
 
     // Zero-multiplier metallic normal:
-    // Scale X/Y by 1/8 and apply radial direction sign:
     wire signed [4:0] dx_scaled = s1_dx[7:3];
     wire signed [4:0] dy_scaled = s1_dy[7:3];
-    wire signed [4:0] torus_nx = (s1_delta_r >= 9'sd0) ? dx_scaled : (-dx_scaled);
-    wire signed [4:0] torus_ny = (s1_delta_r >= 9'sd0) ? dy_scaled : (-dy_scaled);
+    wire signed [4:0] torus_nx = s1_delta_r[8] ? (-dx_scaled) : dx_scaled;
+    wire signed [4:0] torus_ny = s1_delta_r[8] ? (-dy_scaled) : dy_scaled;
 
     wire [6:0] abs_dr = s1_delta_r[8] ? (-s1_delta_r[6:0]) : s1_delta_r[6:0];
     wire signed [4:0] torus_nz = (abs_dr < 7'd35) ? $signed({1'b0, (7'd35 - abs_dr) >> 2}) : 5'sd0;
 
-    // 2. 3D Isometric Cube Surface & Face Normals
-    wire cube_top   = (s1_adx <= 8'd64) && (s1_cdy >= s1_top_upper) && (s1_cdy < s1_top_lower) && s1_cube_bounds;
-    wire cube_left  = (s1_adx <= 8'd64) && (s1_cdy >= s1_top_lower) && (s1_cdy <= s1_front_lower) && (s1_dx < 10'sd0) && s1_cube_bounds;
-    wire cube_right = (s1_adx <= 8'd64) && (s1_cdy >= s1_top_lower) && (s1_cdy <= s1_front_lower) && (s1_dx >= 10'sd0) && s1_cube_bounds;
+    // 2. 3D Isometric Cube Surface (Computed combinationally in Stage 2 from s1_adx and -s1_dy)
+    wire signed [8:0] cdy = -s1_dy[8:0]; // cdy is opposite of dy_center
+    wire [5:0]  adx_slope   = s1_adx[6:1]; // adx >> 1
+    wire signed [8:0] top_upper   = -9'sd32 + $signed({3'b0, adx_slope});
+    wire signed [8:0] top_lower   =  9'sd32 - $signed({3'b0, adx_slope});
+    wire signed [8:0] front_lower = top_lower + 9'sd64;
+
+    wire cube_top   = (cdy >= top_upper) && (cdy < top_lower) && s1_cube_bounds;
+    wire cube_left  = (cdy >= top_lower) && (cdy <= front_lower) && (s1_dx < 10'sd0) && s1_cube_bounds;
+    wire cube_right = (cdy >= top_lower) && (cdy <= front_lower) && (s1_dx >= 10'sd0) && s1_cube_bounds;
     wire cube_hit   = cube_top | cube_left | cube_right;
 
     reg signed [4:0] cube_nx, cube_ny, cube_nz;

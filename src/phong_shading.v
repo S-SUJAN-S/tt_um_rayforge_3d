@@ -23,8 +23,7 @@ module phong_shading (
     input  wire [1:0]  fog_level,      // Floor depth fog
     input  wire [2:0]  light_angle,    // Light orbital angle
     input  wire [1:0]  shading_mode,   // 00=Phong, 01=Normal, 10=Fog, 11=Wire
-    input  wire [9:0]  pixel_x,        // Screen coordinates
-    input  wire [9:0]  pixel_y,
+    input  wire [1:0]  sky_band,       // High bits of pixel_y for cosmic twilight gradient
     input  wire        video_active,   // Active video region
     output reg  [1:0]  red_out,        // 2-bit Red DAC
     output reg  [1:0]  green_out,      // 2-bit Green DAC
@@ -142,20 +141,24 @@ module phong_shading (
                 end
             end
         end else begin
-            // Cosmic Sky Twilight Gradient
-            if (pixel_y < 10'd80) begin
-                red_out   <= 2'b00;
-                green_out <= 2'b00;
-                blue_out  <= 2'b01; // Deep space navy black
-            end else if (pixel_y < 10'd160) begin
-                red_out   <= 2'b00;
-                green_out <= 2'b00;
-                blue_out  <= 2'b10; // Cosmic indigo
-            end else begin
-                red_out   <= 2'b00;
-                green_out <= 2'b01;
-                blue_out  <= 2'b10; // Atmospheric twilight cyan
-            end
+            // Cosmic Sky Twilight Gradient (from sky_band = pixel_y[7:6])
+            case (sky_band)
+                2'b00: begin
+                    red_out   <= 2'b00;
+                    green_out <= 2'b00;
+                    blue_out  <= 2'b01; // Deep space navy black
+                end
+                2'b01: begin
+                    red_out   <= 2'b00;
+                    green_out <= 2'b00;
+                    blue_out  <= 2'b10; // Cosmic indigo
+                end
+                default: begin
+                    red_out   <= 2'b00;
+                    green_out <= 2'b01;
+                    blue_out  <= 2'b10; // Atmospheric twilight cyan
+                end
+            endcase
         end
     end
 
