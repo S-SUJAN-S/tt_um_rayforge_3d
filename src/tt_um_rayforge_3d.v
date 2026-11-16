@@ -1,7 +1,7 @@
 // =============================================================================
 // File: tt_um_rayforge_3d.v
 // Module: tt_um_rayforge_3d (Top-Level Tiny Tapeout ASIC Wrapper)
-// Description: RayForge-X: Ultra-Low-Power Pipelined 3D Sphere Tracing & CSG Raymarching Engine
+// Description: RayForge-X: Multiplierless analytic VGA scene renderer
 // Author: Sujan S & Team (RVCE ECE)
 // Target Foundry: SkyWater 130nm CMOS (Tiny Tapeout 1x1 Standard Tile)
 // =============================================================================
@@ -20,13 +20,14 @@ module tt_um_rayforge_3d (
 );
 
     // =========================================================================
-    // 1. DUAL-STAGE RESET SYNCHRONIZER (Metastability Elimination)
+    // 1. RESET SYNCHRONIZER (Asynchronous Assert, Synchronous Release)
     // =========================================================================
-    reg rst_sync_stage1;
-    reg rst_sync_stage2;
+    wire async_rst_n = rst_n & ena;
+    (* async_reg = "true" *) reg rst_sync_stage1;
+    (* async_reg = "true" *) reg rst_sync_stage2;
 
-    always @(posedge clk or negedge rst_n) begin
-        if (!rst_n) begin
+    always @(posedge clk or negedge async_rst_n) begin
+        if (!async_rst_n) begin
             rst_sync_stage1 <= 1'b0;
             rst_sync_stage2 <= 1'b0;
         end else begin
@@ -35,7 +36,7 @@ module tt_um_rayforge_3d (
         end
     end
 
-    wire clean_rst_n = rst_sync_stage2 & ena;
+    wire clean_rst_n = rst_sync_stage2;
 
     // =========================================================================
     // 2. BIDIRECTIONAL PIN CONFIGURATION
@@ -49,8 +50,8 @@ module tt_um_rayforge_3d (
     wire [9:0] pixel_x;
     wire [9:0] pixel_y;
     wire       video_active;
-    wire       vga_hsync;
-    wire       vga_vsync;
+    wire       core_hsync;
+    wire       core_vsync;
     wire       frame_pulse;
 
     vga_timing_gen u_vga_timing (
@@ -59,39 +60,83 @@ module tt_um_rayforge_3d (
         .pixel_x      (pixel_x),
         .pixel_y      (pixel_y),
         .video_active (video_active),
-        .hsync        (vga_hsync),
-        .vsync        (vga_vsync),
+        .hsync        (core_hsync),
+        .vsync        (core_vsync),
         .frame_pulse  (frame_pulse)
     );
 
     // =========================================================================
-    // 4. DYNAMIC 3D ANIMATION FSM (Rotation & Orbiting Light)
+    // 4. Synchronize external controls and update the scene in vertical blank.
     // =========================================================================
-    wire anim_en = ui_in[0]; // DIP SW 0: Enable auto-animation
-    reg [2:0] anim_rot;
-    reg [2:0] anim_light;
-    reg [3:0] frame_div;
+    wire [6:0] scene_pins = {ui_in[2], ui_in[6:3], ui_in[1:0]};
+    (* async_reg = "true" *) reg [6:0] scene_meta, scene_sync;
+    (* async_reg = "true" *) reg bist_meta, bist_sync;
+    reg [6:0] sampled_scene, active_scene;
+    reg       scene_changed;
+    reg [4:0] bist_stable;
+    reg bist_request;
 
+    // First-stage samples feed only the second stage.
+    always @(posedge clk) begin
+        scene_meta <= scene_pins;
+        scene_sync <= scene_meta;
+        bist_meta  <= ui_in[7];
+        bist_sync  <= bist_meta;
+    end
+
+    // Compare the synchronized word on every clock after its vblank sample.
+    // A mismatch invalidates the interval even if the value later returns.
+    // Commit one coherent word only after a full stable frame interval.
+    wire scene_sample = (pixel_x == 10'd0) && (pixel_y == 10'd480);
+    wire scene_matches_sample = scene_sync == sampled_scene;
     always @(posedge clk) begin
         if (!clean_rst_n) begin
-            anim_rot   <= 3'd0;
-            anim_light <= 3'd0;
-            frame_div  <= 4'd0;
-        end else if (frame_pulse && anim_en) begin
-            if (frame_div == 4'd3) begin // Advance every 4 frames (~15 rot/sec)
-                frame_div  <= 4'd0;
-                anim_rot   <= anim_rot + 3'd1;
-                anim_light <= anim_light + 3'd1;
-            end else begin
-                frame_div  <= frame_div + 4'd1;
-            end
+            sampled_scene <= 7'd0;
+            active_scene  <= 7'd0;
+            scene_changed <= 1'b0;
+        end else if (scene_sample) begin
+            sampled_scene <= scene_sync;
+            scene_changed <= 1'b0;
+            if (!scene_changed && scene_matches_sample)
+                active_scene <= sampled_scene;
+        end else if (!scene_matches_sample) begin
+            scene_changed <= 1'b1;
         end
     end
 
-    wire [2:0] active_rot   = anim_en ? anim_rot   : 3'd1;
-    wire [2:0] active_light = anim_en ? anim_light : {ui_in[6:5], 1'b0};
-    wire       geom_sel     = ui_in[1];   // DIP SW 1: 0=Torus, 1=Cube
-    wire [1:0] shading_mode = ui_in[4:3]; // DIP SW 4..3: 00=Phong, 01=Normal, 10=Fog, 11=Wire
+    // BIST retains a sub-1100-clock start-and-pass response. Reject requests
+    // shorter than 32 consecutive synchronized clocks (about 1.27 us).
+    always @(posedge clk) begin
+        if (!clean_rst_n) begin
+            bist_request <= 1'b0;
+            bist_stable  <= 5'd0;
+        end else if (bist_sync == bist_request) begin
+            bist_stable <= 5'd0;
+        end else begin
+            bist_stable <= bist_stable + 5'd1;
+            if (&bist_stable)
+                bist_request <= bist_sync;
+        end
+    end
+
+    wire anim_en = active_scene[0];
+    reg [2:0] anim_light;
+    reg [1:0] frame_div;
+    always @(posedge clk) begin
+        if (!clean_rst_n) begin
+            anim_light <= 3'd0;
+            frame_div  <= 2'd0;
+        end else if (scene_sample && anim_en) begin
+            frame_div <= frame_div + 2'd1;
+            if (&frame_div)
+                anim_light <= anim_light + 3'd1;
+        end
+    end
+
+    wire [2:0] active_light = anim_en ? anim_light : {active_scene[5:4], 1'b0};
+    wire       geom_sel     = active_scene[1];
+    wire       torus_edge_on = active_scene[6];
+    wire [1:0] shading_mode = active_scene[3:2];
 
     // =========================================================================
     // 5. ANALYTICAL PERSPECTIVE GROUND PLANE & SHADOW ENGINE
@@ -115,7 +160,7 @@ module tt_um_rayforge_3d (
     );
 
     // =========================================================================
-    // 6. 2-STAGE SYSTOLIC SPHERE TRACING PIPELINE
+    // 6. TWO-STAGE ANALYTIC GEOMETRY PIPELINE
     // =========================================================================
     wire              obj_hit;
     wire signed [7:0] hit_px, hit_py, hit_pz;
@@ -128,7 +173,7 @@ module tt_um_rayforge_3d (
         .pixel_y        (pixel_y),
         .video_active   (video_active),
         .geom_sel       (geom_sel),
-        .rot_angle      (active_rot),
+        .torus_edge_on  (torus_edge_on),
         .hit_out        (obj_hit),
         .hit_px         (hit_px),
         .hit_py         (hit_py),
@@ -142,8 +187,8 @@ module tt_um_rayforge_3d (
     // Delay ground by 1 cycle to match sphere tracer stage 2:
     reg [4:0] floor_d1;
     always @(posedge clk) begin
-        if (!clean_rst_n) floor_d1 <= 5'd0;
-        else floor_d1 <= {floor_hit_raw, floor_check_raw, floor_shadow_raw, floor_fog_raw};
+        // Shading ignores the fields when the aligned pixel is invalid.
+        floor_d1 <= {floor_hit_raw, floor_check_raw, floor_shadow_raw, floor_fog_raw};
     end
 
     wire       aligned_floor        = floor_d1[4];
@@ -151,16 +196,12 @@ module tt_um_rayforge_3d (
     wire       aligned_floor_shadow = floor_d1[2];
     wire [1:0] aligned_floor_fog    = floor_d1[1:0];
 
-    // Delay only 2 bits of pixel_y for sky band (saving 36 flip-flops!):
-    reg [1:0] sky_d1, sky_d2;
+    // Sample the stable row bits two clocks after line wrap, just before
+    // the shader consumes the first corresponding pixel.
+    reg [1:0] sky_band;
     always @(posedge clk) begin
-        if (!clean_rst_n) begin
-            sky_d1 <= 2'b00;
-            sky_d2 <= 2'b00;
-        end else begin
-            sky_d1 <= pixel_y[7:6];
-            sky_d2 <= sky_d1;
-        end
+        if (pixel_x == 10'd1)
+            sky_band <= pixel_y[7:6];
     end
 
     // =========================================================================
@@ -183,7 +224,7 @@ module tt_um_rayforge_3d (
         .fog_level   (aligned_floor_fog),
         .light_angle (active_light),
         .shading_mode(shading_mode),
-        .sky_band    (sky_d2),
+        .sky_band    (sky_band),
         .video_active(pipe_active),
         .red_out     (red_sig),
         .green_out   (green_sig),
@@ -191,35 +232,27 @@ module tt_um_rayforge_3d (
     );
 
     // =========================================================================
-    // 9. SYNC SIGNAL DELAY MATCHING (3 Cycles Total Video Latency)
-    // =========================================================================
-    reg [2:0] hsync_pipe;
-    reg [2:0] vsync_pipe;
-
-    always @(posedge clk) begin
-        if (!clean_rst_n) begin
-            hsync_pipe <= 3'b111;
-            vsync_pipe <= 3'b111;
-        end else begin
-            hsync_pipe <= {hsync_pipe[1:0], vga_hsync};
-            vsync_pipe <= {vsync_pipe[1:0], vga_vsync};
-        end
-    end
-
-    wire core_hsync = hsync_pipe[2];
-    wire core_vsync = vsync_pipe[2];
-
-    // =========================================================================
     // 10. BUILT-IN SELF-TEST & 7-SEGMENT DIAGNOSTICS INSTANTIATION
     // =========================================================================
     wire [6:0] seg_cathodes;
     wire       bist_pass;
+    reg        expected_rgb_active;
+    always @(posedge clk) begin
+        // RGB uses the beam position from two clocks earlier. The first two
+        // clocks of each line correspond to blanking on the previous line.
+        // Decode this reference independently of the renderer validity bit.
+        expected_rgb_active <= clean_rst_n && (pixel_x[9:1] != 9'd0) &&
+                               (pixel_x[9:1] < 9'd321) && (pixel_y < 10'd480);
+    end
+    wire rgb_active = |{red_sig, green_sig, blue_sig};
+    wire render_visibility_error = rgb_active ^ expected_rgb_active;
 
     bist_diagnostic u_bist (
         .clk           (clk),
         .rst_n         (clean_rst_n),
-        .bist_en       (ui_in[7]),     // DIP SW 7: Trigger Hardware Self-Test
+        .bist_en       (bist_request),
         .frame_pulse   (frame_pulse),
+        .visibility_error(render_visibility_error),
         .seven_seg_out (seg_cathodes),
         .bist_pass_led (bist_pass)
     );

@@ -14,12 +14,25 @@
   "LEFT_MARGIN_MULT": 6,
   "RIGHT_MARGIN_MULT": 6,
   "FP_SIZING": "absolute",
-  "GRT_ALLOW_CONGESTION": 1,
+  "GRT_ALLOW_CONGESTION": false,
+  "RUN_POST_GRT_DESIGN_REPAIR": true,
+  "MAX_SLEW_VIOLATION_CORNERS": [
+    "*"
+  ],
   "FP_IO_HLENGTH": 2,
   "FP_IO_VLENGTH": 2,
   "FP_PDN_VPITCH": 38.87,
   "RUN_CTS": 1,
   "FP_PDN_MULTILAYER": 0,
   "MAGIC_DEF_LABELS": 0,
-  "MAGIC_WRITE_LEF_PINONLY": 1
+  "MAGIC_WRITE_LEF_PINONLY": 1,
+  "EXTRA_EXCLUDED_CELLS": [
+    "sky130_fd_sc_hd__clkdlybuf4s25_*",
+    "sky130_fd_sc_hd__clkdlybuf4s15_*",
+    "sky130_fd_sc_hd__clkbuf_1",
+    "sky130_fd_sc_hd__buf_1"
+  ],
+  "GRT_DESIGN_REPAIR_MAX_SLEW_PCT": 55,
+  "DRT_THREADS": 4,
+  "CTS_DISTANCE_BETWEEN_BUFFERS": 20
 }

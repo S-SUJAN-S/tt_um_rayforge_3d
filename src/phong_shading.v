@@ -35,29 +35,20 @@ module phong_shading (
     wire signed [3:0] ny = hit_py[6:3];
     wire signed [3:0] nz = hit_pz[6:3];
 
-    // Shared shift-add terms with explicit sign-extension
-    wire signed [5:0] nx_ext = {{2{nx[3]}}, nx};
-    wire signed [5:0] nz_ext = {{2{nz[3]}}, nz};
-    wire signed [5:0] nx_x2  = nx_ext <<< 1;
-    wire signed [5:0] ny_x2  = {{2{ny[3]}}, ny} <<< 1;
-    wire signed [5:0] nz_x2  = nz_ext <<< 1;
+    // Opposite lights negate the same XZ term. Cardinal lights double one
+    // component, and diagonal lights add or subtract the two components.
+    wire signed [4:0] nx_ext = {nx[3], nx};
+    wire signed [4:0] nz_ext = {nz[3], nz};
+    wire signed [4:0] cardinal = light_angle[1] ? {nz, 1'b0} : {nx, 1'b0};
+    wire signed [4:0] dx_diagonal = light_angle[1] ? -nx_ext : nx_ext;
+    wire signed [4:0] diagonal = nz_ext + dx_diagonal;
+    wire signed [4:0] folded_dot = light_angle[0] ? diagonal : cardinal;
+    wire signed [5:0] folded_ext = {folded_dot[4], folded_dot};
+    wire signed [5:0] dot_xz = light_angle[2] ? -folded_ext : folded_ext;
+    wire signed [5:0] ny_x2 = {ny[3], ny, 1'b0};
 
-    // Common term extraction: ny_x2 is present in ALL 8 lighting angles
-    reg signed [5:0] dot_xz;
-    always @(*) begin
-        case (light_angle)
-            3'd0: dot_xz = nx_x2;
-            3'd1: dot_xz = nx_ext + nz_ext;
-            3'd2: dot_xz = nz_x2;
-            3'd3: dot_xz = -nx_ext + nz_ext;
-            3'd4: dot_xz = -nx_x2;
-            3'd5: dot_xz = -nx_ext - nz_ext;
-            3'd6: dot_xz = -nz_x2;
-            3'd7: dot_xz = nx_ext - nz_ext;
-        endcase
-    end
-
-    wire signed [6:0] total_dot = {{dot_xz[5]}, dot_xz} + {{ny_x2[5]}, ny_x2};
+    // Four-bit signed input components bound the total dot to [-32,30].
+    wire signed [5:0] total_dot = dot_xz + ny_x2;
     wire specular_hit = (total_dot > 7'sd14);
 
     always @(posedge clk) begin

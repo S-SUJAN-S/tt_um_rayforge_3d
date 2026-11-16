@@ -1,13 +1,13 @@
 # Tiny Tapeout project information
 project:
-  title:        "RayForge-X: 3D Sphere Tracing & Raymarching Engine"
+  title:        "RayForge-X: Analytic VGA Scene Renderer"
   author:       "Sujan S, Tejasvi R Shankar, Yogesh Mahesh Bisnal, Prathik P Kekare"
   discord:      ""
-  description:  "Real-time 640x480 @ 60Hz 3D raymarching ASIC processor in SkyWater 130nm"
+  description:  "Real-time 640x480 VGA torus and cube renderer in SkyWater 130nm"
   language:     "Verilog"
   clock_hz:     25175000
 
-  # How many tiles your design occupies? A single tile is about 167x108 uM.
+  # How many tiles your design occupies? A Sky130 1x1 tile is 161.000 x 111.520 um.
   tiles: "1x1"
 
   # Your top module name must start with "tt_um_".
@@ -29,7 +29,7 @@ pinout:
   # Inputs
   ui[0]: "anim_en"
   ui[1]: "geom_sel"
-  ui[2]: ""
+  ui[2]: "Torus pose (0 face-on, 1 edge-on; qualifies at vertical blank)"
   ui[3]: "shading_mode[0]"
   ui[4]: "shading_mode[1]"
   ui[5]: "light_angle[0]"

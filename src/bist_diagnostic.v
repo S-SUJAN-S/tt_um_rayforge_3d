@@ -13,44 +13,34 @@ module bist_diagnostic (
     input  wire        rst_n,
     input  wire        bist_en,       // Trigger BIST mode via DIP Switch 7
     input  wire        frame_pulse,   // 60Hz heartbeat for 7-seg character cycling
+    input  wire        visibility_error, // RGB active/blank mismatch at the output
     output reg  [6:0]  seven_seg_out, // 7-Segment display cathodes (g-f-e-d-c-b-a)
     output reg         bist_pass_led  // Status LED (1 = PASS, 0 = Testing / Fail)
 );
 
     // -------------------------------------------------------------------------
-    // 16-bit Galois LFSR: Polynomial x^16 + x^14 + x^13 + x^11 + 1
+    // 16-bit Galois LFSR using feedback mask 16'hA011, with a visibility
+    // mismatch injected into the least significant bit during capture.
     // -------------------------------------------------------------------------
     reg [15:0] lfsr;
     reg [10:0] test_cycles;
-    reg        test_completed;
     reg        signature_valid;
 
     // Expected golden signature after 1024 test cycles
     localparam [15:0] GOLDEN_SIG = 16'h0CB8;
 
+    // Capture the signature on the first edge after all 1,024 shifts.
+    // The frozen LFSR retains that signature while the request is held.
     always @(posedge clk) begin
-        if (!rst_n) begin
-            lfsr            <= 16'hACE1; // Non-zero seed
-            test_cycles     <= 11'd0;
-            test_completed  <= 1'b0;
-            signature_valid <= 1'b0;
-        end else if (bist_en) begin
-            if (test_cycles < 11'd1024) begin
-                test_cycles <= test_cycles + 11'd1;
-                // Galois LFSR feedback
-                lfsr <= {lfsr[14:0], 1'b0} ^ (lfsr[15] ? 16'hA011 : 16'h0000);
-            end else begin
-                test_completed <= 1'b1;
-                if (lfsr == GOLDEN_SIG)
-                    signature_valid <= 1'b1;
-                else
-                    signature_valid <= 1'b0;
-            end
-        end else begin
+        if (!rst_n || !bist_en) begin
             lfsr            <= 16'hACE1;
             test_cycles     <= 11'd0;
-            test_completed  <= 1'b0;
             signature_valid <= 1'b0;
+        end else if (!test_cycles[10]) begin
+            test_cycles <= test_cycles + 11'd1;
+            lfsr <= {lfsr[14:0], visibility_error} ^ (lfsr[15] ? 16'hA011 : 16'h0000);
+        end else begin
+            signature_valid <= (lfsr == GOLDEN_SIG);
         end
     end
 
@@ -58,56 +48,34 @@ module bist_diagnostic (
     // 7-Segment Display Animator
     // -------------------------------------------------------------------------
     localparam [6:0] SEG_P = 7'b1110011; // 'P'
-    localparam [6:0] SEG_A = 7'b1110111; // 'A'
-    localparam [6:0] SEG_S = 7'b1101101; // 'S'
     localparam [6:0] SEG_3 = 7'b1001111; // '3'
     localparam [6:0] SEG_D = 7'b1011110; // 'd'
     localparam [6:0] SEG_MINUS = 7'b1000000; // '-'
 
-    reg [1:0] char_idx;
-    reg [4:0] seg_tick;
+    reg idle_glyph;
+    reg [4:0] idle_frames;
 
     always @(posedge clk) begin
         if (!rst_n) begin
-            char_idx      <= 2'd0;
-            seg_tick      <= 5'd0;
+            idle_glyph <= 1'b0;
+            idle_frames <= 5'd0;
+        end else if (frame_pulse && !bist_en) begin
+            idle_frames <= idle_frames + 5'd1;
+            if (&idle_frames)
+                idle_glyph <= ~idle_glyph;
+        end
+    end
+
+    always @(posedge clk) begin
+        if (!rst_n) begin
             seven_seg_out <= SEG_3;
             bist_pass_led <= 1'b0;
         end else begin
-            if (bist_en) begin
-                if (test_completed && signature_valid) begin
-                    bist_pass_led <= 1'b1;
-                    if (frame_pulse) begin
-                        if (seg_tick == 5'd15) begin
-                            seg_tick <= 5'd0;
-                            char_idx <= char_idx + 2'd1;
-                        end else begin
-                            seg_tick <= seg_tick + 5'd1;
-                        end
-                    end
-
-                    case (char_idx)
-                        2'd0: seven_seg_out <= SEG_P;
-                        2'd1: seven_seg_out <= SEG_A;
-                        2'd2: seven_seg_out <= SEG_S;
-                        2'd3: seven_seg_out <= SEG_S;
-                    endcase
-                end else begin
-                    bist_pass_led <= 1'b0;
-                    seven_seg_out <= SEG_MINUS;
-                end
-            end else begin
-                bist_pass_led <= 1'b1;
-                if (frame_pulse) begin
-                    if (seg_tick == 5'd30) begin
-                        seg_tick <= 5'd0;
-                        char_idx[0] <= ~char_idx[0];
-                    end else begin
-                        seg_tick <= seg_tick + 5'd1;
-                    end
-                end
-                seven_seg_out <= char_idx[0] ? SEG_D : SEG_3;
-            end
+            bist_pass_led <= bist_en && signature_valid;
+            if (bist_en)
+                seven_seg_out <= signature_valid ? SEG_P : SEG_MINUS;
+            else
+                seven_seg_out <= idle_glyph ? SEG_D : SEG_3;
         end
     end
 

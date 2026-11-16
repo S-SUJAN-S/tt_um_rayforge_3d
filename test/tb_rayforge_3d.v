@@ -50,12 +50,31 @@ module tb_rayforge_3d;
     // 25.175 MHz Clock Generation: Period = 39.72 ns (Half period = 19.86 ns)
     always #19.86 clk = ~clk;
 
+    reg obj_hit_at_rgb;
+    always @(posedge clk)
+        obj_hit_at_rgb <= dut.obj_hit;
+
     integer fd;
     integer pixel_count = 0;
     integer obj_pixel_count = 0;
     integer floor_pixel_count = 0;
-    integer shadow_pixel_count = 0;
     integer frame_cycle = 0;
+    integer x, y, dx, dy, radius_sq;
+    reg expected_hit;
+
+    task wait_for_frame;
+        integer timeout_cycles;
+        begin
+            timeout_cycles = 0;
+            @(negedge clk);
+            while (dut.pixel_y != 0 || dut.pixel_x != 3) begin
+                @(negedge clk);
+                timeout_cycles = timeout_cycles + 1;
+                if (timeout_cycles > 420000)
+                    $fatal(1, "Timed out waiting for rendered pixel (0,0)");
+            end
+        end
+    endtask
 
     initial begin
         $display("===============================================================");
@@ -76,8 +95,7 @@ module tb_rayforge_3d;
         #100;
         $display("[STEP 1] Testing Power-On Reset & Bidirectional Pin Buffers...");
         if (uio_oe !== 8'hFF) begin
-            $display("❌ FAILED: uio_oe expected 0xFF, got %h", uio_oe);
-            $finish;
+            $fatal(1, "uio_oe expected 0xFF, got %h", uio_oe);
         end
         $display("✅ [STEP 1 PASSED] Dual-stage reset synchronizer verified!");
 
@@ -89,8 +107,7 @@ module tb_rayforge_3d;
         repeat (1150) @(posedge clk);
         $display("[STEP 2] BIST Results: PASS_LED=%b, 7-Seg Cathodes=%b", uio_out[7], uio_out[6:0]);
         if (uio_out[7] !== 1'b1) begin
-            $display("❌ FAILED: Hardware BIST signature did not match golden vector!");
-            $finish;
+            $fatal(1, "LFSR signature check did not pass");
         end
         $display("✅ [STEP 2 PASSED] Hardware BIST verified with golden signature match!");
 
@@ -100,48 +117,50 @@ module tb_rayforge_3d;
         $display("[STEP 3] Switching to 3D Torus Mode (ui_in=0x01)...");
         ui_in = 8'h01; // anim_en=1, Torus, Phong shading, default light
 
-        // Synchronize with start of vertical frame (VSYNC pulse)
-        $display("[STEP 3] Synchronizing with frame start pulse...");
-        while (dut.u_vga_timing.v_cnt != 0 || dut.u_vga_timing.h_cnt != 0) begin
-            @(posedge clk);
-        end
+        wait_for_frame();
+        wait_for_frame();
+        if (dut.active_scene !== 6'h01)
+            $fatal(1, "Torus scene control did not commit after two vblank samples");
 
-        $display("[STEP 3] Frame start locked! Streaming 640x480 active frame to verilog_frame.ppm...");
         fd = $fopen("verilog_frame.ppm", "w");
         $fwrite(fd, "P3\n640 480\n255\n");
 
-        // Loop over the full 480 lines of 640 active pixels
         for (frame_cycle = 0; frame_cycle < (525 * 800); frame_cycle = frame_cycle + 1) begin
-            @(posedge clk);
-            
-            // Check if current delayed pipeline beam is within active 640x480 display
-            if (dut.u_shading.video_active) begin
+            // At a falling edge, the VGA outputs for this beam are settled.
+            x = frame_cycle % 800;
+            y = frame_cycle / 800;
+            if (hsync_sig !== !(x >= 656 && x < 752))
+                $fatal(1, "HSYNC at %0d,%0d", x, y);
+            if (vsync_sig !== !(y >= 490 && y < 492))
+                $fatal(1, "VSYNC at %0d,%0d", x, y);
+            if (x < 640 && y < 480) begin
                 $fwrite(fd, "%0d %0d %0d\n", r8, g8, b8);
                 pixel_count = pixel_count + 1;
-
-                if (dut.u_shading.hit_in)
+                dx = x - 320;
+                dy = y - 190;
+                radius_sq = dx*dx + dy*dy;
+                expected_hit = radius_sq >= 1600 && radius_sq <= 12100;
+                if (obj_hit_at_rgb !== expected_hit)
+                    $fatal(1, "Torus mask at %0d,%0d: squared radius is %0d", x, y, radius_sq);
+                if (expected_hit)
                     obj_pixel_count = obj_pixel_count + 1;
-                else if (dut.u_shading.is_floor) begin
+                else if (y > 230)
                     floor_pixel_count = floor_pixel_count + 1;
-                    if (dut.u_shading.in_shadow)
-                        shadow_pixel_count = shadow_pixel_count + 1;
-                end
-            end
+            end else if ({red_val, green_val, blue_val} !== 6'd0)
+                $fatal(1, "RGB must be black in blanking at %0d,%0d", x, y);
+            @(negedge clk);
         end
 
         $fclose(fd);
         $display("✅ [STEP 3 COMPLETE] Wrote %0d pixels to verilog_frame.ppm!", pixel_count);
         $display("   - 3D Object Pixels Rendered: %0d (%0d%%)", obj_pixel_count, (obj_pixel_count * 100) / pixel_count);
         $display("   - Ground Floor Pixels Rendered: %0d (%0d%%)", floor_pixel_count, (floor_pixel_count * 100) / pixel_count);
-        $display("   - Dynamic Drop Shadow Pixels: %0d", shadow_pixel_count);
 
         if (obj_pixel_count < 1000) begin
-            $display("❌ FAILED: 3D Object pixel count too low!");
-            $finish;
+            $fatal(1, "Torus object pixel count too low");
         end
         if (floor_pixel_count < 1000) begin
-            $display("❌ FAILED: Floor plane pixel count too low!");
-            $finish;
+            $fatal(1, "Floor plane pixel count too low");
         end
         $display("✅ [STEP 3 PASSED] Complete 640x480 3D scene successfully rendered by Verilog RTL!");
 
@@ -150,24 +169,29 @@ module tb_rayforge_3d;
         // ---------------------------------------------------------------------
         $display("[STEP 4] Switching to CSG Cube Mode (ui_in=0x03)...");
         ui_in = 8'h03; // anim_en=1, geom_sel=1 (Cube), Phong shading
-        while (dut.u_vga_timing.v_cnt != 0 || dut.u_vga_timing.h_cnt != 0) begin
-            @(posedge clk);
-        end
+        wait_for_frame();
+        wait_for_frame();
+        if (dut.active_scene !== 6'h03)
+            $fatal(1, "Cube scene control did not commit after two vblank samples");
         $display("[STEP 4] Frame start locked! Streaming CSG Cube frame to verilog_cube.ppm...");
         fd = $fopen("verilog_cube.ppm", "w");
         $fwrite(fd, "P3\n640 480\n255\n");
         for (frame_cycle = 0; frame_cycle < (525 * 800); frame_cycle = frame_cycle + 1) begin
-            @(posedge clk);
-            if (dut.u_shading.video_active) begin
+            x = frame_cycle % 800;
+            y = frame_cycle / 800;
+            if (x < 640 && y < 480)
                 $fwrite(fd, "%0d %0d %0d\n", r8, g8, b8);
-            end
+            @(negedge clk);
         end
         $fclose(fd);
         $display("✅ [STEP 4 COMPLETE] Wrote CSG Cube frame to verilog_cube.ppm!");
 
         // Test Normal Map Debug mode
         ui_in = 8'h09; // Normal Map Debug
-        repeat (1000) @(posedge clk);
+        wait_for_frame();
+        wait_for_frame();
+        if (dut.shading_mode !== 2'b01)
+            $fatal(1, "Normal-map control did not commit");
         $display("✅ 3D Normal Map Debug Mode Active.");
 
         $display("===============================================================");
