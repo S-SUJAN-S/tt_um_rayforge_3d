@@ -1,9 +1,8 @@
 // =============================================================================
 // File: phong_shading.v
 // Module: phong_shading
-// Description: Zero-Multiplier 7-Level Metallic Phong Shading & Color Palette Engine
-//              Blends 3D specular highlights, dynamic shadows, checkered floor,
-//              smooth atmospheric depth fog, and clean cosmic twilight gradient.
+// Description: Quantized normal/light dot product and seven-level object palette.
+//              Composites the banded sky, checkerboard, and screen-space shadow.
 // Author: Sujan S & Team (RVCE ECE)
 // Target: SkyWater 130nm CMOS (Tiny Tapeout 1x1 Standard Tile)
 // =============================================================================
@@ -19,10 +18,10 @@ module phong_shading (
     input  wire signed [7:0] hit_pz,   // Hit coordinate / Normal Z
     input  wire        is_floor,       // 1 = Floor plane hit
     input  wire        floor_check,    // 1 = Light tile, 0 = Dark tile
-    input  wire        in_shadow,      // 1 = Floor in 3D object shadow
+    input  wire        in_shadow,      // 1 = Floor pixel in screen-space shadow
     input  wire [1:0]  fog_level,      // Floor depth fog
     input  wire [2:0]  light_angle,    // Light orbital angle
-    input  wire [1:0]  shading_mode,   // 00=Phong, 01=Normal, 10=Fog, 11=Wire
+    input  wire [1:0]  shading_mode,   // 00=Lit, 01=Normal, 10=Depth, 11=Silhouette
     input  wire [1:0]  sky_band,       // High bits of pixel_y for cosmic twilight gradient
     input  wire        video_active,   // Active video region
     output reg  [1:0]  red_out,        // 2-bit Red DAC
@@ -65,19 +64,19 @@ module phong_shading (
                     blue_out  <= nz[3:2] + 2'b10;
                 end
                 2'b10: begin
-                    // MODE 10: Depth Fog Visualizer
+                    // MODE 10: Depth proxy
                     red_out   <= 2'b00;
                     green_out <= hit_pz[4:3];
                     blue_out  <= 2'b11;
                 end
                 2'b11: begin
-                    // MODE 11: Edge Silhouette
+                    // MODE 11: Filled silhouette
                     red_out   <= 2'b11;
                     green_out <= 2'b11;
                     blue_out  <= 2'b00;
                 end
                 default: begin
-                    // MODE 00: 7-Level Metallic Phong Shading Palette
+                    // MODE 00: Seven-level lighting palette
                     if (specular_hit) begin
                         red_out   <= 2'b11; // 1. Brilliant Specular White Glint (#FFFFFF)
                         green_out <= 2'b11;

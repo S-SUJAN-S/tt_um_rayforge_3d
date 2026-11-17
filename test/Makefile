@@ -4,8 +4,8 @@
 SIM ?= icarus
 FST ?= -fst
 TOPLEVEL_LANG ?= verilog
-SRC_DIR = $(PWD)/../src
-PROJECT_SOURCES = tt_um_rayforge_3d.v vga_timing_gen.v perspective_ground.v sphere_tracer_pipeline.v sdf_engine.v phong_shading.v bist_diagnostic.v
+SRC_DIR = ../src
+PROJECT_SOURCES = tt_um_rayforge_3d.v vga_timing_gen.v perspective_ground.v sphere_tracer_pipeline.v phong_shading.v bist_diagnostic.v
 
 ifneq ($(GATES),yes)
 
@@ -26,7 +26,7 @@ VERILOG_SOURCES += $(PDK_ROOT)/sky130A/libs.ref/sky130_fd_sc_hd/verilog/primitiv
 VERILOG_SOURCES += $(PDK_ROOT)/sky130A/libs.ref/sky130_fd_sc_hd/verilog/sky130_fd_sc_hd.v
 
 # this gets copied in by the GDS action workflow
-VERILOG_SOURCES += $(PWD)/gate_level_netlist.v
+VERILOG_SOURCES += gate_level_netlist.v
 
 endif
 
@@ -34,7 +34,7 @@ endif
 COMPILE_ARGS += -I$(SRC_DIR)
 
 # Include the testbench sources:
-VERILOG_SOURCES += $(PWD)/tb.v
+VERILOG_SOURCES += tb.v
 TOPLEVEL = tb
 
 # List test modules to run:

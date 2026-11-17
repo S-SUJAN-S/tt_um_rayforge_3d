@@ -1,140 +1,66 @@
-# =============================================================================
-# File: test.py
-# Description: Comprehensive Cocotb Functional Verification Testbench for RayForge-X
-# Author: Sujan S & Team (RVCE ECE)
-# Target: 100% Functional & Corner-Case Verification for 95%+ Silicon Success
-# =============================================================================
+"""Pin-level smoke tests shared by RTL and Tiny Tapeout gate simulation."""
 
 import cocotb
 from cocotb.clock import Clock
-from cocotb.triggers import RisingEdge, ClockCycles
+from cocotb.triggers import ClockCycles, RisingEdge
 
-CLK_PERIOD_NS = 39.72  # 25.175 MHz pixel clock (~39.72 ns)
+
+CLK_PERIOD_NS = 39.72
+RGB_MASK = 0x77
+HSYNC_MASK = 0x80
+VSYNC_MASK = 0x08
+
 
 async def setup_dut(dut):
-    """Initializes clock, reset, and default input conditions"""
-    clock = Clock(dut.clk, CLK_PERIOD_NS, unit="ns")
-    cocotb.start_soon(clock.start())
-
+    """Drive the default scene and allow synchronized reset release."""
+    cocotb.start_soon(Clock(dut.clk, CLK_PERIOD_NS, unit="ns").start())
     dut.ena.value = 1
     dut.ui_in.value = 0
     dut.uio_in.value = 0
     dut.rst_n.value = 0
-
-    # Hold reset for 5 cycles
     await ClockCycles(dut.clk, 5)
     dut.rst_n.value = 1
-
-    # Wait 4 cycles for the 2-stage reset synchronizer to deassert clean_rst_n
     await ClockCycles(dut.clk, 4)
 
-# =============================================================================
-# TEST 1: Power-On Reset & Metastability Synchronizer Verification
-# =============================================================================
+
+async def wait_hsync(dut, high):
+    for _ in range(801):
+        await RisingEdge(dut.clk)
+        if bool(int(dut.uo_out.value) & HSYNC_MASK) == high:
+            return cocotb.utils.get_sim_time(unit="ns")
+    raise AssertionError(f"HSYNC never became {'high' if high else 'low'} in one scanline")
+
+
 @cocotb.test()
 async def test_reset_and_synchronizer(dut):
-    """Verify that the 2-stage reset synchronizer releases cleanly without glitches"""
-    dut._log.info("🧪 [TEST 1] Testing Power-On Reset & 2-Stage Synchronizer...")
     await setup_dut(dut)
+    assert int(dut.uio_oe.value) == 0xFF
+    sync_mask = HSYNC_MASK | VSYNC_MASK
+    assert (int(dut.uo_out.value) & sync_mask) == sync_mask
 
-    # Check that bidirectional pins are configured as active outputs
-    assert int(dut.uio_oe.value) == 0xFF, f"Expected uio_oe=0xFF, got {dut.uio_oe.value}"
 
-    # During normal startup, HSYNC (bit 7) and VSYNC (bit 3) must be inactive (high)
-    uo_val = int(dut.uo_out.value)
-    hsync_bit = (uo_val >> 7) & 1
-    vsync_bit = (uo_val >> 3) & 1
-    assert hsync_bit == 1, "HSYNC must be inactive high on reset release"
-    assert vsync_bit == 1, "VSYNC must be inactive high on reset release"
-
-    dut._log.info("✅ [TEST 1 PASSED] Reset synchronizer and I/O buffer states verified.")
-
-# =============================================================================
-# TEST 2: Hardware Built-in Self-Test (BIST) & 7-Segment Diagnostic
-# =============================================================================
 @cocotb.test()
 async def test_bist_self_test_pass(dut):
-    """Verify the healthy visibility signature, PASS LED, and status glyph."""
-    dut._log.info("🧪 [TEST 2] Testing Built-in Self-Test (BIST) Engine...")
     await setup_dut(dut)
-
-    # Trigger BIST by asserting ui_in[7] = 1 (DIP Switch 7)
     dut.ui_in.value = 0x80
-    await ClockCycles(dut.clk, 2)
+    await ClockCycles(dut.clk, 1102)
+    assert int(dut.uio_out.value) == 0xF3, "Expected PASS and a steady P glyph"
 
-    # Wait for the 1024 BIST test cycles to complete
-    dut._log.info("Running 1100 clock cycles through Galois LFSR signature engine...")
-    await ClockCycles(dut.clk, 1100)
 
-    # uio_out[7] must be 1 (BIST PASS LED)
-    uio_val = int(dut.uio_out.value)
-    bist_pass_led = (uio_val >> 7) & 1
-    assert bist_pass_led == 1, f"BIST Failed! Expected uio_out[7]=1, got {bist_pass_led}"
-
-    # Verify 7-segment display shows valid non-zero character cathode pattern
-    seven_seg = uio_val & 0x7F
-    assert seven_seg == 0x73, f"Expected steady P glyph, got {seven_seg:#x}"
-
-    dut._log.info(f"✅ [TEST 2 PASSED] Hardware BIST PASS confirmed (Signature Match). 7-Seg: {seven_seg:#02x}")
-
-# =============================================================================
-# TEST 3: VGA Horizontal & Vertical Timing Standards Compliance
-# =============================================================================
 @cocotb.test()
 async def test_vga_timing_standards(dut):
-    """Check the 96-clock HSYNC pulse of the 640×480 VGA mode."""
-    dut._log.info("🧪 [TEST 3] Testing Standard VGA Scanline Timing...")
     await setup_dut(dut)
+    start = await wait_hsync(dut, high=False)
+    end = await wait_hsync(dut, high=True)
+    expected = 96 * CLK_PERIOD_NS
+    assert abs(end - start - expected) < CLK_PERIOD_NS / 2, "HSYNC must span 96 pixel clocks"
 
-    # Ensure HSYNC is high initially
-    while ((int(dut.uo_out.value) >> 7) & 1) == 0:
-        await RisingEdge(dut.clk)
 
-    # Wait until HSYNC goes active low (sync pulse start on uo_out[7])
-    while ((int(dut.uo_out.value) >> 7) & 1) != 0:
-        await RisingEdge(dut.clk)
-    sync_start_cycle = cocotb.utils.get_sim_time(unit="ns")
-
-    # Wait until HSYNC returns high (sync pulse end)
-    while ((int(dut.uo_out.value) >> 7) & 1) == 0:
-        await RisingEdge(dut.clk)
-    sync_end_cycle = cocotb.utils.get_sim_time(unit="ns")
-
-    # Measure sync pulse duration: 96 cycles * 39.72ns ≈ 3813 ns
-    pulse_duration_ns = sync_end_cycle - sync_start_cycle
-    expected_duration_ns = 96 * CLK_PERIOD_NS
-    delta = abs(pulse_duration_ns - expected_duration_ns)
-
-    dut._log.info(f"HSYNC Pulse Duration: {pulse_duration_ns:.2f} ns (Expected ~{expected_duration_ns:.2f} ns)")
-    assert delta < (CLK_PERIOD_NS * 0.5), f"HSYNC pulse width is not 96 clocks: {pulse_duration_ns} ns"
-
-    dut._log.info("✅ [TEST 3 PASSED] VGA scanline pulse timing strictly complies with VESA standards.")
-
-# =============================================================================
-# TEST 4: Default active video after reset
-# =============================================================================
 @cocotb.test()
 async def test_default_active_video(dut):
-    """Smoke-test active RGB on the first few lines of the default scene."""
-    dut._log.info("Testing default active VGA output")
     await setup_dut(dut)
-
-    active_pixel_count = 0
+    active_pixels = 0
     for _ in range(2500):
         await RisingEdge(dut.clk)
-        # Tiny VGA PMOD decoding:
-        # Red:   MSB = uo_out[0], LSB = uo_out[4]
-        # Green: MSB = uo_out[1], LSB = uo_out[5]
-        # Blue:  MSB = uo_out[2], LSB = uo_out[6]
-        uo_val = int(dut.uo_out.value)
-        red   = (((uo_val >> 0) & 1) << 1) | ((uo_val >> 4) & 1)
-        green = (((uo_val >> 1) & 1) << 1) | ((uo_val >> 5) & 1)
-        blue  = (((uo_val >> 2) & 1) << 1) | ((uo_val >> 6) & 1)
-        
-        if (red > 0) or (green > 0) or (blue > 0):
-            active_pixel_count += 1
-
-    dut._log.info(f"Sampled {active_pixel_count} active colored pixels in test window.")
-    assert active_pixel_count > 500, "Insufficient active video pixels generated by pipeline!"
-
-    # Scene switching and mask oracles belong to the full-frame pin tests.
+        active_pixels += bool(int(dut.uo_out.value) & RGB_MASK)
+    assert active_pixels > 500, "Expected nonblack RGB on the first visible lines"

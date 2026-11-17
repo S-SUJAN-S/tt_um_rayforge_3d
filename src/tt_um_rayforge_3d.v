@@ -14,7 +14,7 @@ module tt_um_rayforge_3d (
     input  wire [7:0] uio_in,   // IOs: Input path (unused)
     output wire [7:0] uio_out,  // IOs: Output path (7-Segment display + BIST status)
     output wire [7:0] uio_oe,   // IOs: Enable path (active high: 1=output, 0=input)
-    input  wire       ena,      // Always 1 when the design is powered
+    input  wire       ena,      // High while this Tiny Tapeout design is selected
     input  wire       clk,      // System clock (25.175 MHz VGA pixel clock)
     input  wire       rst_n     // Asynchronous active-low reset from button
 );
@@ -139,7 +139,7 @@ module tt_um_rayforge_3d (
     wire [1:0] shading_mode = active_scene[3:2];
 
     // =========================================================================
-    // 5. ANALYTICAL PERSPECTIVE GROUND PLANE & SHADOW ENGINE
+    // 5. BANDED CHECKERBOARD AND SCREEN-SPACE SHADOW
     // =========================================================================
     wire       floor_hit_raw;
     wire       floor_check_raw;
@@ -184,7 +184,7 @@ module tt_um_rayforge_3d (
     // =========================================================================
     // 7. PIPELINE LATENCY ALIGNMENT DELAY REGISTERS
     // =========================================================================
-    // Delay ground by 1 cycle to match sphere tracer stage 2:
+    // Delay the ground fields by one cycle to match geometry stage 2.
     reg [4:0] floor_d1;
     always @(posedge clk) begin
         // Shading ignores the fields when the aligned pixel is invalid.
@@ -205,7 +205,7 @@ module tt_um_rayforge_3d (
     end
 
     // =========================================================================
-    // 8. PHONG SHADING, NORMAL MAPPING & COLOR PALETTE ENGINE
+    // 8. LIGHTING PALETTE AND DEBUG COLORS
     // =========================================================================
     wire [1:0] red_sig;
     wire [1:0] green_sig;
@@ -232,7 +232,7 @@ module tt_um_rayforge_3d (
     );
 
     // =========================================================================
-    // 10. BUILT-IN SELF-TEST & 7-SEGMENT DIAGNOSTICS INSTANTIATION
+    // 9. PRE-PAD RGB VISIBILITY SELF-TEST
     // =========================================================================
     wire [6:0] seg_cathodes;
     wire       bist_pass;
@@ -258,7 +258,7 @@ module tt_um_rayforge_3d (
     );
 
     // =========================================================================
-    // 11. OUTPUT PIN MAPPING (Official Tiny VGA PMOD Standard)
+    // 10. OUTPUT PIN MAPPING (Tiny VGA PMOD)
     // =========================================================================
     assign uo_out[0] = red_sig[1];   // R1 (Red MSB)
     assign uo_out[1] = green_sig[1]; // G1 (Green MSB)

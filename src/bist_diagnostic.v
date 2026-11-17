@@ -23,24 +23,36 @@ module bist_diagnostic (
     // mismatch injected into the least significant bit during capture.
     // -------------------------------------------------------------------------
     reg [15:0] lfsr;
-    reg [10:0] test_cycles;
+    reg [9:0]  capture_timer;
+    reg        capture_done;
     reg        signature_valid;
 
     // Expected golden signature after 1024 test cycles
     localparam [15:0] GOLDEN_SIG = 16'h0CB8;
 
-    // Capture the signature on the first edge after all 1,024 shifts.
-    // The frozen LFSR retains that signature while the request is held.
+    // Independent timer: zero advances to one, then the maximal 10-bit
+    // recurrence (taps 9 and 6) visits all 1,023 nonzero states. On the
+    // last state 10'h200, complement the feedback to return to zero and
+    // hold there until rearm. This defines all 1,024 data signature shifts
+    // without a binary carry chain or dependence on the observed data.
+    wire timer_tail_zero = !(|capture_timer[8:0]);
+    wire timer_feedback = capture_timer[9] ^ capture_timer[6] ^
+                          (timer_tail_zero && !capture_done);
+
     always @(posedge clk) begin
         if (!rst_n || !bist_en) begin
             lfsr            <= 16'hACE1;
-            test_cycles     <= 11'd0;
+            capture_timer   <= 10'd0;
+            capture_done    <= 1'b0;
             signature_valid <= 1'b0;
-        end else if (!test_cycles[10]) begin
-            test_cycles <= test_cycles + 11'd1;
-            lfsr <= {lfsr[14:0], visibility_error} ^ (lfsr[15] ? 16'hA011 : 16'h0000);
         end else begin
-            signature_valid <= (lfsr == GOLDEN_SIG);
+            capture_timer <= {capture_timer[8:0], timer_feedback};
+            capture_done <= capture_done || (capture_timer[9] && timer_tail_zero);
+            if (!capture_done) begin
+                lfsr <= {lfsr[14:0], visibility_error} ^ (lfsr[15] ? 16'hA011 : 16'h0000);
+            end else begin
+                signature_valid <= (lfsr == GOLDEN_SIG);
+            end
         end
     end
 

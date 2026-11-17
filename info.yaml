@@ -3,7 +3,7 @@ project:
   title:        "RayForge-X: Analytic VGA Scene Renderer"
   author:       "Sujan S, Tejasvi R Shankar, Yogesh Mahesh Bisnal, Prathik P Kekare"
   discord:      ""
-  description:  "Real-time 640x480 VGA torus and cube renderer in SkyWater 130nm"
+  description:  "Single-tile 640x480 VGA renderer with exact face-on and edge-on torus silhouettes"
   language:     "Verilog"
   clock_hz:     25175000
 
@@ -20,21 +20,20 @@ project:
     - "vga_timing_gen.v"
     - "perspective_ground.v"
     - "sphere_tracer_pipeline.v"
-    - "sdf_engine.v"
     - "phong_shading.v"
     - "bist_diagnostic.v"
 
 # The pinout of your project. Leave unused pins blank. DO NOT delete or add any pins.
 pinout:
   # Inputs
-  ui[0]: "anim_en"
-  ui[1]: "geom_sel"
-  ui[2]: "Torus pose (0 face-on, 1 edge-on; qualifies at vertical blank)"
+  ui[0]: "Light orbit enable"
+  ui[1]: "Object select (0 torus, 1 cube)"
+  ui[2]: "Torus pose (0 face-on, 1 edge-on)"
   ui[3]: "shading_mode[0]"
   ui[4]: "shading_mode[1]"
   ui[5]: "light_angle[0]"
   ui[6]: "light_angle[1]"
-  ui[7]: "bist_en"
+  ui[7]: "Visibility self-test request"
 
   # Outputs (Tiny VGA PMOD)
   uo[0]: "R1"

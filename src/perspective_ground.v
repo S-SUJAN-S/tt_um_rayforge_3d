@@ -58,14 +58,11 @@ module perspective_ground (
         endcase
     end
 
-    // Width bands centered at scanline 315.
-    reg [5:0] shadow_half_w;
-    always @(*) begin
-        if      (pixel_y >= 10'd304 && pixel_y <= 10'd326) shadow_half_w = 6'd44;
-        else if (pixel_y >= 10'd294 && pixel_y <= 10'd336) shadow_half_w = 6'd32;
-        else if (pixel_y >= 10'd286 && pixel_y <= 10'd344) shadow_half_w = 6'd16;
-        else                                               shadow_half_w = 6'd0;
-    end
+    // Both the row bands and horizontal spans are nested, so their union
+    // selects exactly the widest span applicable at a given row.
+    wire row_near = pixel_y >= 10'd286 && pixel_y <= 10'd344;
+    wire row_mid  = pixel_y >= 10'd294 && pixel_y <= 10'd336;
+    wire row_wide = pixel_y >= 10'd304 && pixel_y <= 10'd326;
 
     // -------------------------------------------------------------------------
     // 3. Horizontal checker phase modulo 2048
@@ -81,13 +78,22 @@ module perspective_ground (
     wire u_tile_bit = pixel_phase[10];
     wire check_parity = u_tile_bit ^ v_tile_bit;
 
-    // Shadow test
+    // Reflect negative distances with one's complement instead of
+    // negation. Their absolute magnitude is one more than the reflected
+    // value, so the strict negative-side cutoffs are 15, 31 and 43.
     // The 256-pixel window excludes modular aliases outside the shadow.
     wire signed [7:0] screen_dx = $signed(pixel_x[7:0]) - 8'sd64;
     wire signed [7:0] shadow_dx = screen_dx - $signed({{2{shadow_x_center[5]}}, shadow_x_center});
-    wire [7:0] abs_shadow_dx = shadow_dx[7] ? -shadow_dx : shadow_dx;
+    wire neg_side = shadow_dx[7];
+    wire [3:0] abs_block = shadow_dx[6:3] ^ {4{neg_side}};
+    wire [2:0] offset = pixel_x[2:0];
+    wire neg_excluded_edge = neg_side && (offset == 3'd0);
+    wire x_near = (abs_block < 4'd2) && !(neg_excluded_edge && abs_block[0]);
+    wire x_mid  = (abs_block < 4'd4) && !(neg_excluded_edge && (&abs_block[1:0]));
+    wire x_wide = (abs_block < 4'd5) || ((abs_block == 4'd5) &&
+                   (neg_side ? (offset > 3'd4) : (offset < 3'd4)));
     wire shadow_hit = (pixel_x >= 10'd192) && (pixel_x < 10'd448) &&
-                      (abs_shadow_dx < {2'b0, shadow_half_w});
+                      ((row_near && x_near) || (row_mid && x_mid) || (row_wide && x_wide));
 
     // -------------------------------------------------------------------------
     // 4. Output Registering & Atmospheric Horizon Fog

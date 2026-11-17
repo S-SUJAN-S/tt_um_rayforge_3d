@@ -1,12 +1,26 @@
 ## How it works
 
-RayForge-X generates 640×480 VGA with a 25.175 MHz clock and an 800×525 raster. It processes one pixel per clock. One incremental squared-radius circuit produces the torus's exact face-on annulus or edge-on capsule, and signed comparisons produce the isometric cube faces. A checkerboard, a moving screen-space shadow, and a shift-add lighting palette complete the scene.
+RayForge-X generates 640×480 VGA at 59.94 Hz with a 25.175 MHz clock. It scans an 800×525 raster and emits one sample per clock. The two torus views use one finite-difference circuit for exact integer silhouettes. The cube uses signed comparator tests for the projected faces. Quantized lighting, an eight-band checkerboard and a screen-space shadow complete the scene.
 
-Scene controls update at vertical blank after the synchronized switch word stays unchanged for the full interval between two blanking starts. The diagnostic derives expected visibility from the beam position and compares it with the black versus nonblack pre-pad RGB output. It checks the signature after 1,024 steps and shows a steady `P` and a lit LED on a match.
+The video outputs follow the Tiny VGA PMOD pinout. Each color uses two bits. HSYNC and VSYNC are active low. The bidirectional pins are all configured as outputs.
+
+## Pin controls
+
+| Pins | Function |
+| --- | --- |
+| `ui[0]` | Automatically advance the light through eight directions, once every four frames |
+| `ui[1]` | 0 torus, 1 projected cube |
+| `ui[2]` | Torus pose, 0 face-on, 1 edge-on |
+| `ui[4:3]` | 00 lit palette, 01 normal colors, 10 depth proxy, 11 yellow silhouette |
+| `ui[6:5]` | Manual light direction when orbit is off. Codes 00, 01, 10, 11 select directions 0, 2, 4, 6. |
+| `ui[7]` | Visibility self-test request |
+| `uo[7:0]` | HSYNC, B0, G0, R0, VSYNC, B1, G1, R1 |
+| `uio[6:0]` | Seven-segment pattern in bit order g through a |
+| `uio[7]` | Self-test PASS |
 
 ## How to test
 
-1. Connect a Tiny VGA PMOD to `uo_out` and supply a 25.175 MHz pixel clock.
-2. Apply and release reset while the clock is running. The default display is a lit torus.
-3. Set `ui_in[0]` for light orbit, `ui_in[1]` for the cube, `ui_in[2]` for the edge-on torus view, `ui_in[4:3]` for the display palette, and `ui_in[6:5]` for the manual light angle. Give scene switches up to two frames to take effect.
-4. Hold `ui_in[7]` high. The display shows the diagnostic result and `uio_out[7]` asserts when the golden LFSR signature matches.
+1. Connect a Tiny VGA PMOD and supply a 25.175 MHz pixel clock. Select the design and assert then release reset while the clock runs.
+2. Start with all scene inputs low. The display shows a lit face-on torus.
+3. Change the pose, cube, lighting, or palette controls. Leave the whole scene word stable for up to two frames. The design applies the qualified word at vertical blank.
+4. Hold `ui[7]` high to run the independent pre-pad RGB visibility check. A healthy diagnostic produces a steady `P` pattern and asserts `uio[7]` after 1,060 clocks in the testbench. Lower `ui[7]` to re-arm the test. The check observes black versus nonblack RGB during its finite window.

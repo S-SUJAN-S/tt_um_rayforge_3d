@@ -22,11 +22,11 @@ jobs:
         shell: bash
         run: pip install -r test/requirements.txt
 
-      - name: Run tests
-        run: |
-          cd test
-          make clean
-          make
+      - name: Run Cocotb RTL tests
+        run: make -C test
+
+      - name: Run standalone RTL and raster tests
+        run: bash test/run-rtl.sh
 
       - name: Upload test results
         if: success() || failure()
@@ -36,3 +36,4 @@ jobs:
           path: |
             test/tb.fst
             test/results.xml
+            test/sim_build/standalone/*.log

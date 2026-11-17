@@ -75,6 +75,12 @@ module sphere_tracer_pipeline (
     // negative coordinates to avoid negation. Ties retain both components.
     wire [1:0] dx_bin = dx_center[6:5] ^ {2{dx_center[7]}};
     wire [1:0] dy_bin = dy_center[6:5] ^ {2{dy_center[7]}};
+    // In the capsule's visible domain (|dy|<=35), promote the X component
+    // near the ends and the Y component near its top or bottom. The central
+    // region uses the higher front-facing Z magnitude. Distances of negative
+    // coordinates are one's-complement magnitudes, as in the face-on bins.
+    wire edge_x_major = dx_bin[1];
+    wire edge_y_major = dy_bin[0] || (dy_center[4] ^ dy_center[7]);
 
     reg signed [7:0] s1_dy;
     reg s1_nx_negative, s1_ny_negative;
@@ -91,15 +97,16 @@ module sphere_tracer_pipeline (
         s1_dy          <= dy_center;
         s1_nx_negative <= dx_center[7] ^ inner_wall;
         s1_ny_negative <= !dy_center[7] ^ inner_wall;
-        s1_x_major     <= dx_bin >= dy_bin;
-        s1_y_major     <= dy_bin >= dx_bin;
+        s1_x_major     <= torus_edge_on ? edge_x_major : (dx_bin >= dy_bin);
+        s1_y_major     <= torus_edge_on ? edge_y_major : (dy_bin >= dx_bin);
         s1_adx_slope   <= abs_dx[5:1];
         s1_left        <= dx_center[7];
         s1_cube_bounds <= cube_in_bounds;
         s1_torus_hit   <= torus_hit;
         s1_geom_sel    <= geom_sel;
-        // Front surface depth >= 28, with thresholds in the squared domain.
-        s1_tube_band   <= (radius_sq >= 15'd2916) && (radius_sq <= 15'd9216);
+        // On the face-on view this band corresponds to front depth >= 28.
+        s1_tube_band   <= torus_edge_on ? !(edge_x_major || edge_y_major) :
+                          ((radius_sq >= 15'd2916) && (radius_sq <= 15'd9216));
     end
 
     // =========================================================================

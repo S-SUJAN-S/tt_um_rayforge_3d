@@ -12,8 +12,8 @@
 module vga_timing_gen (
     input  wire        clk,          // 25.175 MHz pixel clock
     input  wire        rst_n,        // Synchronous active-low reset
-    output wire [9:0]  pixel_x,      // Current X coordinate [0..639]
-    output wire [9:0]  pixel_y,      // Current Y coordinate [0..479]
+    output wire [9:0]  pixel_x,      // Raster X coordinate [0..799]
+    output wire [9:0]  pixel_y,      // Raster Y coordinate [0..524]
     output wire        video_active, // High when inside 640x480 active display
     output reg         hsync,        // Horizontal sync (active low)
     output reg         vsync,        // Vertical sync (active low)

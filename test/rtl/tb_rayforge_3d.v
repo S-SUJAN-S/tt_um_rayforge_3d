@@ -1,9 +1,7 @@
 // =============================================================================
 // File: tb_rayforge_3d.v
 // Module: tb_rayforge_3d
-// Description: Comprehensive Full-Frame Verilog Testbench for RayForge-X
-//              Simulates entire 420,000-cycle 640x480 @ 60Hz VGA frame and
-//              dumps exact pixel stream from silicon pins to verilog_frame.ppm.
+// Description: Full-frame Verilog regression and VGA PPM capture.
 // Author: Sujan S & Team (RVCE ECE)
 // =============================================================================
 
@@ -78,7 +76,7 @@ module tb_rayforge_3d;
 
     initial begin
         $display("===============================================================");
-        $display("🚀 RayForge-X: Full-Frame Hardware Silicon Verilog Testbench");
+        $display("RayForge-X full-frame RTL regression");
         $display("===============================================================");
 
         clk    = 0;
@@ -88,7 +86,7 @@ module tb_rayforge_3d;
         uio_in = 8'h00;
 
         // ---------------------------------------------------------------------
-        // 1. Test Reset & Metastability Synchronizer
+        // 1. Check startup and output enables
         // ---------------------------------------------------------------------
         #200;
         rst_n = 1;
@@ -97,7 +95,7 @@ module tb_rayforge_3d;
         if (uio_oe !== 8'hFF) begin
             $fatal(1, "uio_oe expected 0xFF, got %h", uio_oe);
         end
-        $display("✅ [STEP 1 PASSED] Dual-stage reset synchronizer verified!");
+        $display("PASS startup output enables");
 
         // ---------------------------------------------------------------------
         // 2. Test Hardware BIST Engine
@@ -119,7 +117,7 @@ module tb_rayforge_3d;
 
         wait_for_frame();
         wait_for_frame();
-        if (dut.active_scene !== 6'h01)
+        if (dut.active_scene !== 7'h01)
             $fatal(1, "Torus scene control did not commit after two vblank samples");
 
         fd = $fopen("verilog_frame.ppm", "w");
@@ -165,15 +163,15 @@ module tb_rayforge_3d;
         $display("✅ [STEP 3 PASSED] Complete 640x480 3D scene successfully rendered by Verilog RTL!");
 
         // ---------------------------------------------------------------------
-        // 4. Test Mode Switching: CSG Cube Full-Frame Dump
+        // 4. Verify scene switching and capture the projected cube
         // ---------------------------------------------------------------------
-        $display("[STEP 4] Switching to CSG Cube Mode (ui_in=0x03)...");
-        ui_in = 8'h03; // anim_en=1, geom_sel=1 (Cube), Phong shading
+        $display("[STEP 4] Switching to projected cube mode (ui_in=0x03)...");
+        ui_in = 8'h03; // Light orbit enabled, lit cube
         wait_for_frame();
         wait_for_frame();
-        if (dut.active_scene !== 6'h03)
+        if (dut.active_scene !== 7'h03)
             $fatal(1, "Cube scene control did not commit after two vblank samples");
-        $display("[STEP 4] Frame start locked! Streaming CSG Cube frame to verilog_cube.ppm...");
+        $display("[STEP 4] Capturing the projected cube to verilog_cube.ppm");
         fd = $fopen("verilog_cube.ppm", "w");
         $fwrite(fd, "P3\n640 480\n255\n");
         for (frame_cycle = 0; frame_cycle < (525 * 800); frame_cycle = frame_cycle + 1) begin
@@ -195,7 +193,7 @@ module tb_rayforge_3d;
         $display("✅ 3D Normal Map Debug Mode Active.");
 
         $display("===============================================================");
-        $display("🎉 ALL FULL-FRAME HARDWARE SILICON VERIFICATION CHECKS PASSED!");
+        $display("PASS full-frame checks and PPM captures");
         $display("===============================================================");
         $finish;
     end

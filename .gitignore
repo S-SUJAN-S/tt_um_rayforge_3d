@@ -1,12 +1,15 @@
-# Simulation Dumps & Intermediate Files
+# Simulation and Python outputs
 *.vcd
+*.fst
+*.vvp
 *.ppm
 sim_*
-runs/
 __pycache__/
 *.pyc
+.venv/
 
-# Local Test Outputs
-test/sim_build/
-test/__pycache__/
+# Local and hosted build outputs
+runs/
 test/results.xml
+test/*-results.xml
+test/gate_level_netlist.v
