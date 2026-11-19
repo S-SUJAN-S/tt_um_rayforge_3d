@@ -23,23 +23,26 @@ module perspective_ground (
     output reg  [1:0]  fog_level      // Depth fog attenuation
 );
 
-    // Decode the shared step and start phase from the scanline.
+    // One decode controls pitch, line seed and vertical parity. Visible
+    // rows grow taller away from the horizon. Pitch is held through each
+    // complete checker row so a pitch transition cannot leave a thin strip.
     wire is_below_horizon = (pixel_y > 10'd230) && video_active;
     wire [7:0] delta_y = pixel_y[7:0] - 8'd230;
+    wire [5:0] row_group = delta_y[7:2];
     reg [6:0] k_step;
     reg [4:0] line_phase;
+    reg v_tile_bit;
     always @(*) begin
-        if      (delta_y < 8'd20)  {k_step, line_phase} = {7'd110, 5'd26};
-        else if (delta_y < 8'd28)  {k_step, line_phase} = {7'd80,  5'd16};
-        else if (delta_y < 8'd40)  {k_step, line_phase} = {7'd56,  5'd8};
-        else if (delta_y < 8'd60)  {k_step, line_phase} = {7'd40,  5'd24};
-        else if (delta_y < 8'd90)  {k_step, line_phase} = {7'd28,  5'd20};
-        else if (delta_y < 8'd130) {k_step, line_phase} = {7'd18,  5'd6};
-        else if (delta_y < 8'd180) {k_step, line_phase} = {7'd13,  5'd31};
-        else                       {k_step, line_phase} = {7'd9,   5'd19};
+        if      (row_group < 6'd9)  {k_step, line_phase, v_tile_bit} = {7'd56, 5'd8,  1'b1};
+        else if (row_group < 6'd13) {k_step, line_phase, v_tile_bit} = {7'd56, 5'd8,  1'b0};
+        else if (row_group < 6'd18) {k_step, line_phase, v_tile_bit} = {7'd40, 5'd24, 1'b1};
+        else if (row_group < 6'd24) {k_step, line_phase, v_tile_bit} = {7'd40, 5'd24, 1'b0};
+        else if (row_group < 6'd31) {k_step, line_phase, v_tile_bit} = {7'd24, 5'd8,  1'b1};
+        else if (row_group < 6'd39) {k_step, line_phase, v_tile_bit} = {7'd24, 5'd8,  1'b0};
+        else if (row_group < 6'd48) {k_step, line_phase, v_tile_bit} = {7'd13, 5'd31, 1'b1};
+        else if (row_group < 6'd58) {k_step, line_phase, v_tile_bit} = {7'd9,  5'd19, 1'b0};
+        else                       {k_step, line_phase, v_tile_bit} = {7'd9,  5'd19, 1'b1};
     end
-
-    wire v_tile_bit = delta_y[5] ^ delta_y[4];
 
     // -------------------------------------------------------------------------
     // 2. Dynamic Shadow Position based on light_angle

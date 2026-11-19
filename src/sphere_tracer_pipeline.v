@@ -1,7 +1,7 @@
 // =============================================================================
 // File: sphere_tracer_pipeline.v
 // Module: sphere_tracer_pipeline
-// Description: Exact orthographic torus silhouette and projected cube faces.
+// Description: Exact torus silhouettes, programmable profiles, and projected cube faces.
 // The module name is retained for the Tiny Tapeout source manifest.
 // Author: Sujan S & Team (RVCE ECE)
 // =============================================================================
@@ -15,7 +15,9 @@ module sphere_tracer_pipeline (
     input  wire [9:0]  pixel_y,        // Screen Y [0..479]
     input  wire        video_active,   // Active video region
     input  wire        geom_sel,       // 0=Torus, 1=Cube
-    input  wire        torus_edge_on,  // 0=face on, 1=edge on
+    input  wire        torus_edge_on,  // Step in X as a capsule when asserted
+    input  wire        profile_mode,   // Programmable disk/capsule
+    input  wire [3:0]  profile_radius, // Squared radius = 256 + 128 * input
     output reg         hit_out,        // 1 = 3D surface hit
     output reg  signed [7:0] hit_px,   // Normal / Hit X (formatted for shading)
     output reg  signed [7:0] hit_py,   // Normal / Hit Y
@@ -37,7 +39,9 @@ module sphere_tracer_pipeline (
     // the nearer endpoint outside that segment. Inside, preserve the Y term.
     // At x=192 and x=448 the two X terms are symmetric in each pose, so the
     // Y step at line wrap preserves the next scanline's starting invariant.
-    wire radial_columns = (pixel_x[9:6] >= 4'd3) && (pixel_x[9:6] <= 4'd6);
+    wire disk_profile = profile_mode && !torus_edge_on;
+    wire radial_columns = (pixel_x[9:6] >= 4'd3) && (pixel_x[9:6] <= 4'd6) &&
+                          (!disk_profile || pixel_x[8:7] == 2'b10);
     wire radial_rows = (pixel_y >= 10'd80) && (pixel_y <= 10'd300);
     wire end_of_line = (pixel_x == 10'd799);
     wire start_radial_rows = end_of_line && (pixel_y == 10'd79);
@@ -45,9 +49,10 @@ module sphere_tracer_pipeline (
     // For the right block (x=384..447), invert before and after the same
     // add to subtract 11. The carry rejects positions inside the segment.
     // In the face-on pose the unchanged low bits represent x-320.
-    wire reflect_cap = torus_edge_on && pixel_x[8];
+    wire fixed_capsule = torus_edge_on && !profile_mode;
+    wire reflect_cap = fixed_capsule && pixel_x[8];
     wire [5:0] cap_bits = pixel_x[5:0] ^ {6{reflect_cap}};
-    wire [6:0] cap_sum = {1'b0, cap_bits} + (torus_edge_on ? 7'd11 : 7'd0);
+    wire [6:0] cap_sum = {1'b0, cap_bits} + (fixed_capsule ? 7'd11 : 7'd0);
     wire [5:0] step_x_low = cap_sum[5:0] ^ {6{reflect_cap}};
     wire [1:0] step_x_high = torus_edge_on ? {2{!pixel_x[8]}} : dx_center[7:6];
     wire [7:0] step_x_coordinate = {step_x_high, step_x_low};
@@ -57,12 +62,17 @@ module sphere_tracer_pipeline (
     wire [14:0] radial_delta = {{6{step_coordinate[7]}}, step_coordinate, 1'b1};
     reg [14:0] radius_sq;
 
+    // At the left boundary both user profiles have X distance -64:
+    // the disk starts at x=256; the capsule starts at x=192 and its left
+    // endpoint is x=256. Add a bias 12100 - (256 + 128*code) to the seed
+    // so both profiles keep the original pair of threshold comparators.
+    wire [7:0] profile_seed_hi = 8'd219 - {4'b0, profile_radius};
+    wire [14:0] profile_seed = {profile_seed_hi, 7'd8};
+
     always @(posedge clk) begin
         if (start_radial_rows)
-            // The capsule adds a constant bias 10875 to its true squared
-            // distance. It then shares the face-on upper bound: 10875 +
-            // 35^2 = 12100. Its encoded minimum is above the lower bound.
-            radius_sq <= torus_edge_on ? 15'd25784 : 15'd28484;
+            radius_sq <= profile_mode ? profile_seed :
+                         (torus_edge_on ? 15'd25784 : 15'd28484);
         else if (radial_rows && (step_x || end_of_line))
             radius_sq <= radius_sq + radial_delta;
     end

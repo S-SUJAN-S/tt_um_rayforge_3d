@@ -6,8 +6,8 @@ RayForge-X generates the scene directly in raster order. It has one pixel clock 
 | --- | --- |
 | [`tt_um_rayforge_3d.v`](../src/tt_um_rayforge_3d.v) | Tiny Tapeout wrapper, reset and switch synchronizers, scene qualification, pipeline alignment, independent visibility reference and pin mapping |
 | [`vga_timing_gen.v`](../src/vga_timing_gen.v) | Raster counters, active region, aligned sync and frame tick |
-| [`sphere_tracer_pipeline.v`](../src/sphere_tracer_pipeline.v) | Two-stage torus and cube scan converter under the original module name |
-| [`perspective_ground.v`](../src/perspective_ground.v) | Eight horizontal step bands, checkerboard phase and screen-space shadow |
+| [`sphere_tracer_pipeline.v`](../src/sphere_tracer_pipeline.v) | Two-stage torus, programmable disk and capsule, and cube scan converter |
+| [`perspective_ground.v`](../src/perspective_ground.v) | Progressive checker rows, checkerboard phase and screen-space shadow |
 | [`phong_shading.v`](../src/phong_shading.v) | Shift-add light dot product, object palette and background compositor |
 | [`bist_diagnostic.v`](../src/bist_diagnostic.v) | Signature capture, independent timer, PASS and seven-segment status |
 | [`config.json`](../src/config.json) | 39.72 ns timing constraint and one-tile placement, routing and repair settings |
@@ -34,11 +34,13 @@ The implementation adds 10,875 to the edge-on quantity. Both poses can then use 
 
 The cube uses fixed integer comparisons for the top diamond and two sides. These intervals give one of three fixed normal vectors. The torus classifiers generate pose-aware quantized normals from screen-coordinate bands and the radius state. The depth view displays a proxy derived from the same shading vector.
 
+The programmable mode loads a radius-dependent seed into the same accumulator. A shape bit selects a disk or a capsule and the radius code sets the exact coverage bound. [Geometry command and derivation](programmable-geometry.md)
+
 ## Lighting and ground
 
-The light uses a fixed positive vertical component and eight signed horizontal/depth directions. Opposite directions share the same arithmetic. A six-bit signed dot product selects one of seven object colors. The normal, depth and silhouette modes use alternate object colors with the same background.
+The light uses a fixed positive vertical component and eight signed horizontal/depth directions. Opposite directions share the same arithmetic. A six-bit signed dot product selects one of seven object colors. The lit palette uses distinct RGB codes from the sky, floor and shadow. The normal, depth and silhouette modes use alternate object colors with the same background.
 
-The checkerboard runs below row 230. Its horizontal phase advances by one of eight scanline-dependent steps and is seeded at each line start. Shadow width changes in screen-space row bands, with an X offset selected by the light angle. The resulting shadow is a screen-space effect.
+The checkerboard becomes visible at row 254. A shared row decoder selects horizontal pitch, line phase and vertical parity. The complete checker rows grow from 12 to 40 scanlines toward the foreground. Shadow width changes in screen-space row bands, with an X offset selected by the light angle. The resulting shadow is a screen-space effect.
 
 ## Controls and diagnostic
 

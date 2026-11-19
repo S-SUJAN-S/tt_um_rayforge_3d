@@ -94,15 +94,15 @@ module phong_shading (
                         green_out <= 2'b10;
                         blue_out  <= 2'b10;
                     end else if (total_dot > -7'sd4) begin
-                        red_out   <= 2'b00; // 5. Royal Cobalt (#0055AA)
+                        red_out   <= 2'b01; // 5. Cobalt highlight (#5555FF)
                         green_out <= 2'b01;
-                        blue_out  <= 2'b10;
+                        blue_out  <= 2'b11;
                     end else if (total_dot > -7'sd8) begin
                         red_out   <= 2'b00; // 6. Deep Emerald (#005555)
                         green_out <= 2'b01;
                         blue_out  <= 2'b01;
                     end else begin
-                        red_out   <= 2'b00; // 7. Ambient Indigo (#000055)
+                        red_out   <= 2'b01; // 7. Ambient purple (#550055)
                         green_out <= 2'b00;
                         blue_out  <= 2'b01;
                     end

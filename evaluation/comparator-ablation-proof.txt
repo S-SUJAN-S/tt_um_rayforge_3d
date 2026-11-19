@@ -1,0 +1,421 @@
+
+-- Running command `read_verilog comparator_miter.v; prep -top comparator_miter -flatten; sat -verify -prove next_matches 1 -prove flags_match 1 -show-inputs -show-outputs' --
+
+1. Executing Verilog-2005 frontend: comparator_miter.v
+Parsing Verilog input from `comparator_miter.v' to AST representation.
+Generating RTLIL representation for module `\biased'.
+Generating RTLIL representation for module `\unbiased'.
+Generating RTLIL representation for module `\comparator_miter'.
+Successfully finished Verilog frontend.
+
+2. Executing PREP pass.
+
+2.1. Executing HIERARCHY pass (managing design hierarchy).
+
+2.1.1. Analyzing design hierarchy..
+Top module:  \comparator_miter
+Used module:     \unbiased
+Used module:     \biased
+
+2.1.2. Analyzing design hierarchy..
+Top module:  \comparator_miter
+Used module:     \unbiased
+Used module:     \biased
+Removed 0 unused modules.
+
+2.2. Executing PROC pass (convert processes to netlists).
+
+2.2.1. Executing PROC_CLEAN pass (remove empty switches from decision trees).
+Cleaned up 0 empty switches.
+
+2.2.2. Executing PROC_RMDEAD pass (remove dead branches from decision trees).
+Marked 2 switch rules as full_case in process $proc$comparator_miter.v:318$221 in module unbiased.
+Marked 2 switch rules as full_case in process $proc$comparator_miter.v:144$88 in module biased.
+Removed a total of 0 dead cases.
+
+2.2.3. Executing PROC_PRUNE pass (remove redundant assignments in processes).
+Removed 0 redundant assignments.
+Promoted 60 assignments to connections.
+
+2.2.4. Executing PROC_INIT pass (extract init attributes).
+
+2.2.5. Executing PROC_ARST pass (detect async resets in processes).
+
+2.2.6. Executing PROC_ROM pass (convert switches to ROMs).
+Converted 0 switches.
+<suppressed ~4 debug messages>
+
+2.2.7. Executing PROC_MUX pass (convert decision trees to multiplexers).
+Creating decoders for process `\unbiased.$proc$comparator_miter.v:306$248'.
+Creating decoders for process `\unbiased.$proc$comparator_miter.v:305$237'.
+Creating decoders for process `\unbiased.$proc$comparator_miter.v:335$222'.
+Creating decoders for process `\unbiased.$proc$comparator_miter.v:318$221'.
+     1/6: $2\cube_nz[4:0]
+     2/6: $2\cube_ny[4:0]
+     3/6: $2\cube_nx[4:0]
+     4/6: $1\cube_nz[4:0]
+     5/6: $1\cube_ny[4:0]
+     6/6: $1\cube_nx[4:0]
+Creating decoders for process `\unbiased.$proc$comparator_miter.v:275$198'.
+Creating decoders for process `\biased.$proc$comparator_miter.v:132$114'.
+Creating decoders for process `\biased.$proc$comparator_miter.v:131$103'.
+Creating decoders for process `\biased.$proc$comparator_miter.v:161$89'.
+Creating decoders for process `\biased.$proc$comparator_miter.v:144$88'.
+     1/6: $2\cube_nz[4:0]
+     2/6: $2\cube_ny[4:0]
+     3/6: $2\cube_nx[4:0]
+     4/6: $1\cube_nz[4:0]
+     5/6: $1\cube_ny[4:0]
+     6/6: $1\cube_nx[4:0]
+Creating decoders for process `\biased.$proc$comparator_miter.v:102$66'.
+
+2.2.8. Executing PROC_DLATCH pass (convert process syncs to latches).
+No latch inferred for signal `\unbiased.\torus_xy$func$comparator_miter.v:306$126.$result' from process `\unbiased.$proc$comparator_miter.v:306$248'.
+No latch inferred for signal `\unbiased.\torus_xy$func$comparator_miter.v:305$125.$result' from process `\unbiased.$proc$comparator_miter.v:305$237'.
+No latch inferred for signal `\unbiased.\cube_nx' from process `\unbiased.$proc$comparator_miter.v:318$221'.
+No latch inferred for signal `\unbiased.\cube_ny' from process `\unbiased.$proc$comparator_miter.v:318$221'.
+No latch inferred for signal `\unbiased.\cube_nz' from process `\unbiased.$proc$comparator_miter.v:318$221'.
+No latch inferred for signal `\biased.\torus_xy$func$comparator_miter.v:132$2.$result' from process `\biased.$proc$comparator_miter.v:132$114'.
+No latch inferred for signal `\biased.\torus_xy$func$comparator_miter.v:131$1.$result' from process `\biased.$proc$comparator_miter.v:131$103'.
+No latch inferred for signal `\biased.\cube_nx' from process `\biased.$proc$comparator_miter.v:144$88'.
+No latch inferred for signal `\biased.\cube_ny' from process `\biased.$proc$comparator_miter.v:144$88'.
+No latch inferred for signal `\biased.\cube_nz' from process `\biased.$proc$comparator_miter.v:144$88'.
+
+2.2.9. Executing PROC_DFF pass (convert process syncs to FFs).
+Creating register for signal `\unbiased.\hit_out' using process `\unbiased.$proc$comparator_miter.v:335$222'.
+  created $dff cell `$procdff$320' with positive edge clock.
+Creating register for signal `\unbiased.\hit_px' using process `\unbiased.$proc$comparator_miter.v:335$222'.
+  created $dff cell `$procdff$321' with positive edge clock.
+Creating register for signal `\unbiased.\hit_py' using process `\unbiased.$proc$comparator_miter.v:335$222'.
+  created $dff cell `$procdff$322' with positive edge clock.
+Creating register for signal `\unbiased.\hit_pz' using process `\unbiased.$proc$comparator_miter.v:335$222'.
+  created $dff cell `$procdff$323' with positive edge clock.
+Creating register for signal `\unbiased.\pipeline_active' using process `\unbiased.$proc$comparator_miter.v:335$222'.
+  created $dff cell `$procdff$324' with positive edge clock.
+Creating register for signal `\unbiased.\s1_dy' using process `\unbiased.$proc$comparator_miter.v:275$198'.
+  created $dff cell `$procdff$325' with positive edge clock.
+Creating register for signal `\unbiased.\s1_nx_negative' using process `\unbiased.$proc$comparator_miter.v:275$198'.
+  created $dff cell `$procdff$326' with positive edge clock.
+Creating register for signal `\unbiased.\s1_ny_negative' using process `\unbiased.$proc$comparator_miter.v:275$198'.
+  created $dff cell `$procdff$327' with positive edge clock.
+Creating register for signal `\unbiased.\s1_x_major' using process `\unbiased.$proc$comparator_miter.v:275$198'.
+  created $dff cell `$procdff$328' with positive edge clock.
+Creating register for signal `\unbiased.\s1_y_major' using process `\unbiased.$proc$comparator_miter.v:275$198'.
+  created $dff cell `$procdff$329' with positive edge clock.
+Creating register for signal `\unbiased.\s1_adx_slope' using process `\unbiased.$proc$comparator_miter.v:275$198'.
+  created $dff cell `$procdff$330' with positive edge clock.
+Creating register for signal `\unbiased.\s1_left' using process `\unbiased.$proc$comparator_miter.v:275$198'.
+  created $dff cell `$procdff$331' with positive edge clock.
+Creating register for signal `\unbiased.\s1_cube_bounds' using process `\unbiased.$proc$comparator_miter.v:275$198'.
+  created $dff cell `$procdff$332' with positive edge clock.
+Creating register for signal `\unbiased.\s1_torus_hit' using process `\unbiased.$proc$comparator_miter.v:275$198'.
+  created $dff cell `$procdff$333' with positive edge clock.
+Creating register for signal `\unbiased.\s1_geom_sel' using process `\unbiased.$proc$comparator_miter.v:275$198'.
+  created $dff cell `$procdff$334' with positive edge clock.
+Creating register for signal `\unbiased.\s1_active' using process `\unbiased.$proc$comparator_miter.v:275$198'.
+  created $dff cell `$procdff$335' with positive edge clock.
+Creating register for signal `\unbiased.\s1_tube_band' using process `\unbiased.$proc$comparator_miter.v:275$198'.
+  created $dff cell `$procdff$336' with positive edge clock.
+Creating register for signal `\biased.\hit_out' using process `\biased.$proc$comparator_miter.v:161$89'.
+  created $dff cell `$procdff$337' with positive edge clock.
+Creating register for signal `\biased.\hit_px' using process `\biased.$proc$comparator_miter.v:161$89'.
+  created $dff cell `$procdff$338' with positive edge clock.
+Creating register for signal `\biased.\hit_py' using process `\biased.$proc$comparator_miter.v:161$89'.
+  created $dff cell `$procdff$339' with positive edge clock.
+Creating register for signal `\biased.\hit_pz' using process `\biased.$proc$comparator_miter.v:161$89'.
+  created $dff cell `$procdff$340' with positive edge clock.
+Creating register for signal `\biased.\pipeline_active' using process `\biased.$proc$comparator_miter.v:161$89'.
+  created $dff cell `$procdff$341' with positive edge clock.
+Creating register for signal `\biased.\s1_dy' using process `\biased.$proc$comparator_miter.v:102$66'.
+  created $dff cell `$procdff$342' with positive edge clock.
+Creating register for signal `\biased.\s1_nx_negative' using process `\biased.$proc$comparator_miter.v:102$66'.
+  created $dff cell `$procdff$343' with positive edge clock.
+Creating register for signal `\biased.\s1_ny_negative' using process `\biased.$proc$comparator_miter.v:102$66'.
+  created $dff cell `$procdff$344' with positive edge clock.
+Creating register for signal `\biased.\s1_x_major' using process `\biased.$proc$comparator_miter.v:102$66'.
+  created $dff cell `$procdff$345' with positive edge clock.
+Creating register for signal `\biased.\s1_y_major' using process `\biased.$proc$comparator_miter.v:102$66'.
+  created $dff cell `$procdff$346' with positive edge clock.
+Creating register for signal `\biased.\s1_adx_slope' using process `\biased.$proc$comparator_miter.v:102$66'.
+  created $dff cell `$procdff$347' with positive edge clock.
+Creating register for signal `\biased.\s1_left' using process `\biased.$proc$comparator_miter.v:102$66'.
+  created $dff cell `$procdff$348' with positive edge clock.
+Creating register for signal `\biased.\s1_cube_bounds' using process `\biased.$proc$comparator_miter.v:102$66'.
+  created $dff cell `$procdff$349' with positive edge clock.
+Creating register for signal `\biased.\s1_torus_hit' using process `\biased.$proc$comparator_miter.v:102$66'.
+  created $dff cell `$procdff$350' with positive edge clock.
+Creating register for signal `\biased.\s1_geom_sel' using process `\biased.$proc$comparator_miter.v:102$66'.
+  created $dff cell `$procdff$351' with positive edge clock.
+Creating register for signal `\biased.\s1_active' using process `\biased.$proc$comparator_miter.v:102$66'.
+  created $dff cell `$procdff$352' with positive edge clock.
+Creating register for signal `\biased.\s1_tube_band' using process `\biased.$proc$comparator_miter.v:102$66'.
+  created $dff cell `$procdff$353' with positive edge clock.
+
+2.2.10. Executing PROC_MEMWR pass (convert process memory writes to cells).
+
+2.2.11. Executing PROC_CLEAN pass (remove empty switches from decision trees).
+Removing empty process `unbiased.$proc$comparator_miter.v:306$248'.
+Removing empty process `unbiased.$proc$comparator_miter.v:305$237'.
+Removing empty process `unbiased.$proc$comparator_miter.v:335$222'.
+Found and cleaned up 2 empty switches in `\unbiased.$proc$comparator_miter.v:318$221'.
+Removing empty process `unbiased.$proc$comparator_miter.v:318$221'.
+Removing empty process `unbiased.$proc$comparator_miter.v:275$198'.
+Removing empty process `biased.$proc$comparator_miter.v:132$114'.
+Removing empty process `biased.$proc$comparator_miter.v:131$103'.
+Removing empty process `biased.$proc$comparator_miter.v:161$89'.
+Found and cleaned up 2 empty switches in `\biased.$proc$comparator_miter.v:144$88'.
+Removing empty process `biased.$proc$comparator_miter.v:144$88'.
+Removing empty process `biased.$proc$comparator_miter.v:102$66'.
+Cleaned up 4 empty switches.
+
+2.2.12. Executing OPT_EXPR pass (perform const folding).
+Optimizing module comparator_miter.
+Optimizing module unbiased.
+Optimizing module biased.
+
+2.3. Executing FLATTEN pass (flatten design).
+Deleting now unused module unbiased.
+Deleting now unused module biased.
+<suppressed ~2 debug messages>
+
+2.4. Executing FUTURE pass.
+
+2.5. Executing OPT_EXPR pass (perform const folding).
+Optimizing module comparator_miter.
+<suppressed ~6 debug messages>
+
+2.6. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \comparator_miter..
+Removed 139 unused cells and 320 unused wires.
+<suppressed ~196 debug messages>
+
+2.7. Executing CHECK pass (checking for obvious problems).
+Checking module comparator_miter...
+Found and reported 0 problems.
+
+2.8. Executing OPT pass (performing simple optimizations).
+
+2.8.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module comparator_miter.
+
+2.8.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\comparator_miter'.
+Computing hashes of 136 cells of `\comparator_miter'.
+Finding duplicate cells in `\comparator_miter'.
+Computing hashes of 118 cells of `\comparator_miter'.
+Finding duplicate cells in `\comparator_miter'.
+Computing hashes of 109 cells of `\comparator_miter'.
+Finding duplicate cells in `\comparator_miter'.
+Computing hashes of 106 cells of `\comparator_miter'.
+Finding duplicate cells in `\comparator_miter'.
+Computing hashes of 103 cells of `\comparator_miter'.
+Finding duplicate cells in `\comparator_miter'.
+Computing hashes of 101 cells of `\comparator_miter'.
+Finding duplicate cells in `\comparator_miter'.
+Computing hashes of 100 cells of `\comparator_miter'.
+Finding duplicate cells in `\comparator_miter'.
+<suppressed ~108 debug messages>
+Removed a total of 36 cells.
+
+2.8.3. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \comparator_miter..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~31 debug messages>
+
+2.8.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \comparator_miter.
+Performed a total of 0 changes.
+
+2.8.5. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\comparator_miter'.
+Computing hashes of 100 cells of `\comparator_miter'.
+Finding duplicate cells in `\comparator_miter'.
+Computing hashes of 98 cells of `\comparator_miter'.
+Finding duplicate cells in `\comparator_miter'.
+Computing hashes of 97 cells of `\comparator_miter'.
+Finding duplicate cells in `\comparator_miter'.
+Computing hashes of 95 cells of `\comparator_miter'.
+Finding duplicate cells in `\comparator_miter'.
+Computing hashes of 93 cells of `\comparator_miter'.
+Finding duplicate cells in `\comparator_miter'.
+Computing hashes of 92 cells of `\comparator_miter'.
+Finding duplicate cells in `\comparator_miter'.
+Computing hashes of 91 cells of `\comparator_miter'.
+Finding duplicate cells in `\comparator_miter'.
+Computing hashes of 90 cells of `\comparator_miter'.
+Finding duplicate cells in `\comparator_miter'.
+Computing hashes of 89 cells of `\comparator_miter'.
+Finding duplicate cells in `\comparator_miter'.
+<suppressed ~33 debug messages>
+Removed a total of 11 cells.
+
+2.8.6. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \comparator_miter..
+Removed 0 unused cells and 28 unused wires.
+<suppressed ~1 debug messages>
+
+2.8.7. Executing OPT_EXPR pass (perform const folding).
+Optimizing module comparator_miter.
+
+2.8.8. Rerunning OPT passes. (Maybe there is more to do..)
+
+2.8.9. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \comparator_miter..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~26 debug messages>
+
+2.8.10. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \comparator_miter.
+Performed a total of 0 changes.
+
+2.8.11. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\comparator_miter'.
+Computing hashes of 89 cells of `\comparator_miter'.
+Finding duplicate cells in `\comparator_miter'.
+Removed a total of 0 cells.
+
+2.8.12. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \comparator_miter..
+
+2.8.13. Executing OPT_EXPR pass (perform const folding).
+Optimizing module comparator_miter.
+
+2.8.14. Finished fast OPT passes. (There is nothing left to do.)
+
+2.9. Executing WREDUCE pass (reducing word size of cells).
+Removed top 7 bits (of 16) from port A of cell comparator_miter.$add$comparator_miter.v:355$259 ($add).
+Removed top 5 bits (of 16) from port B of cell comparator_miter.$add$comparator_miter.v:355$259 ($add).
+Removed top 4 bits (of 16) from port Y of cell comparator_miter.$add$comparator_miter.v:355$259 ($add).
+Removed top 2 bits (of 16) from port A of cell comparator_miter.$sub$comparator_miter.v:356$260 ($sub).
+Removed top 4 bits (of 16) from port B of cell comparator_miter.$sub$comparator_miter.v:356$260 ($sub).
+Removed top 1 bits (of 16) from port Y of cell comparator_miter.$sub$comparator_miter.v:356$260 ($sub).
+Removed top 2 bits (of 16) from mux cell comparator_miter.$ternary$comparator_miter.v:356$261 ($mux).
+Removed top 1 bits (of 16) from port A of cell comparator_miter.$add$comparator_miter.v:357$263 ($add).
+Removed top 1 bits (of 15) from port B of cell comparator_miter.$flatten\b.$le$comparator_miter.v:170$100 ($le).
+Removed top 3 bits (of 15) from port B of cell comparator_miter.$flatten\b.$ge$comparator_miter.v:170$99 ($ge).
+Removed top 1 bits (of 2) from port Y of cell comparator_miter.$flatten\b.$xor$comparator_miter.v:86$63 ($xor).
+Removed top 1 bits (of 2) from port A of cell comparator_miter.$flatten\b.$xor$comparator_miter.v:86$63 ($xor).
+Removed top 1 bits (of 2) from port B of cell comparator_miter.$flatten\b.$xor$comparator_miter.v:86$63 ($xor).
+Removed top 2 bits (of 15) from port B of cell comparator_miter.$flatten\b.$lt$comparator_miter.v:81$61 ($lt).
+Removed top 1 bits (of 15) from port B of cell comparator_miter.$flatten\b.$le$comparator_miter.v:80$59 ($le).
+Removed top 4 bits (of 15) from port B of cell comparator_miter.$flatten\b.$ge$comparator_miter.v:80$57 ($ge).
+Removed top 3 bits (of 15) from mux cell comparator_miter.$flatten\b.$ternary$comparator_miter.v:76$49 ($mux).
+Converting cell comparator_miter.$flatten\b.$sub$comparator_miter.v:72$48 ($sub) from unsigned to signed.
+Removed top 1 bits (of 8) from port A of cell comparator_miter.$flatten\b.$sub$comparator_miter.v:72$48 ($sub).
+Removed top 3 bits (of 8) from port B of cell comparator_miter.$flatten\b.$sub$comparator_miter.v:72$48 ($sub).
+Removed top 3 bits (of 10) from port B of cell comparator_miter.$flatten\b.$eq$comparator_miter.v:50$29 ($eq).
+Removed top 1 bits (of 10) from port B of cell comparator_miter.$flatten\b.$le$comparator_miter.v:48$26 ($le).
+Removed top 3 bits (of 10) from port B of cell comparator_miter.$flatten\b.$ge$comparator_miter.v:48$25 ($ge).
+Removed top 1 bits (of 4) from port B of cell comparator_miter.$flatten\b.$le$comparator_miter.v:46$19 ($le).
+Removed top 2 bits (of 4) from port B of cell comparator_miter.$flatten\b.$ge$comparator_miter.v:46$18 ($ge).
+Removed top 1 bits (of 15) from port B of cell comparator_miter.$flatten\u.$le$comparator_miter.v:345$233 ($le).
+Removed top 3 bits (of 15) from port B of cell comparator_miter.$flatten\u.$ge$comparator_miter.v:345$232 ($ge).
+Removed top 2 bits (of 15) from port B of cell comparator_miter.$flatten\u.$lt$comparator_miter.v:254$192 ($lt).
+Removed top 3 bits (of 15) from port B of cell comparator_miter.$flatten\u.$le$comparator_miter.v:250$184 ($le).
+Removed top 4 bits (of 15) from port B of cell comparator_miter.$flatten\u.$le$comparator_miter.v:249$183 ($le).
+Removed top 1 bits (of 15) from port B of cell comparator_miter.$flatten\u.$le$comparator_miter.v:248$181 ($le).
+Removed top 4 bits (of 15) from port B of cell comparator_miter.$flatten\u.$ge$comparator_miter.v:248$180 ($ge).
+Removed top 1 bits (of 5) from port A of cell comparator_miter.$flatten\u.$add$comparator_miter.v:241$172 ($add).
+Removed top 3 bits (of 5) from port B of cell comparator_miter.$flatten\u.$add$comparator_miter.v:241$172 ($add).
+Removed top 1 bits (of 7) from port A of cell comparator_miter.$flatten\u.$add$comparator_miter.v:229$160 ($add).
+Removed top 3 bits (of 7) from mux cell comparator_miter.$flatten\u.$ternary$comparator_miter.v:229$159 ($mux).
+Removed top 3 bits (of 7) from wire comparator_miter.$flatten\b.$ternary$comparator_miter.v:58$35_Y.
+Removed top 3 bits (of 15) from wire comparator_miter.$flatten\b.$ternary$comparator_miter.v:76$49_Y.
+Removed top 2 bits (of 16) from wire comparator_miter.$ternary$comparator_miter.v:356$261_Y.
+Removed top 4 bits (of 16) from wire comparator_miter.r2.
+
+2.10. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \comparator_miter..
+Removed 0 unused cells and 4 unused wires.
+<suppressed ~1 debug messages>
+
+2.11. Executing MEMORY_COLLECT pass (generating $mem cells).
+
+2.12. Executing OPT pass (performing simple optimizations).
+
+2.12.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module comparator_miter.
+
+2.12.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\comparator_miter'.
+Computing hashes of 89 cells of `\comparator_miter'.
+Finding duplicate cells in `\comparator_miter'.
+Removed a total of 0 cells.
+
+2.12.3. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \comparator_miter..
+
+2.12.4. Finished fast OPT passes.
+
+2.13. Executing SORT pass.
+
+2.14. Printing statistics.
+
+=== comparator_miter ===
+
+        +----------Local Count, excluding submodules.
+        |
+      160 wires
+      735 wire bits
+      111 public wires
+      538 public wire bits
+        8 ports
+       43 port bits
+       89 cells
+        7   $add
+        5   $eq
+        6   $ge
+        8   $le
+       19   $logic_and
+        6   $logic_not
+        7   $logic_or
+        2   $lt
+       18   $mux
+        2   $scopeinfo
+        4   $sub
+        5   $xor
+
+2.15. Executing CHECK pass (checking for obvious problems).
+Checking module comparator_miter...
+Found and reported 0 problems.
+
+3. Executing SAT pass (solving SAT problems in the circuit).
+Using SAT solver `minisat`.
+
+Setting up SAT problem:
+Final constraint equation: { } = { }
+Imported 89 cells to SAT database.
+Import proof-constraint: \next_matches = 1'1
+Import proof-constraint: \flags_match = 1'1
+Final proof equation: { \flags_match \next_matches } = 2'11
+Import show expression: \code
+Import show expression: \edge_on
+Import show expression: \profile
+Import show expression: \raw
+Import show expression: \x
+Import show expression: \y
+Import show expression: \flags_match
+Import show expression: \next_matches
+
+Solving problem with 3460 variables and 9567 clauses..
+SAT proof finished - no model found: SUCCESS!
+
+                  /$$$$$$      /$$$$$$$$     /$$$$$$$
+                 /$$__  $$    | $$_____/    | $$__  $$
+                | $$  \ $$    | $$          | $$  \ $$
+                | $$  | $$    | $$$$$       | $$  | $$
+                | $$  | $$    | $$__/       | $$  | $$
+                | $$/$$ $$    | $$          | $$  | $$
+                |  $$$$$$/ /$$| $$$$$$$$ /$$| $$$$$$$//$$
+                 \____ $$$|__/|________/|__/|_______/|__/
+                       \__/
+
+End of script. Logfile hash: d5e5a9bacb
+Yosys 0.66 (git sha1 7f8fdfd8d7bc08c749a2a969388d3425d4f369d5, x86_64-w64-mingw32-g++ 16.1.0 -march=nocona -msahf -mtune=generic -O2 -fstack-protector-strong -O3)
+Time spent: 3% 6x opt_expr (0 sec), 3% 5x opt_clean (0 sec), ...

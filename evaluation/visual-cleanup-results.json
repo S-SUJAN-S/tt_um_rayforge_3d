@@ -1,0 +1,59 @@
+{
+  "0x00": {
+    "scene": "Face-on torus",
+    "recolored_lit_pixels": 11074,
+    "changed_floor_pixels": 68071
+  },
+  "0x04": {
+    "scene": "Edge-on torus",
+    "recolored_lit_pixels": 5965,
+    "changed_floor_pixels": 71206
+  },
+  "0x02": {
+    "scene": "Projected cube",
+    "recolored_lit_pixels": 4095,
+    "changed_floor_pixels": 70207
+  },
+  "0x08": {
+    "scene": "Normals",
+    "recolored_lit_pixels": 0,
+    "changed_floor_pixels": 68071
+  },
+  "0x10": {
+    "scene": "Depth proxy",
+    "recolored_lit_pixels": 0,
+    "changed_floor_pixels": 68071
+  },
+  "0x1C": {
+    "scene": "Edge-on silhouette",
+    "recolored_lit_pixels": 0,
+    "changed_floor_pixels": 71206
+  },
+  "0x06": {
+    "scene": "Small disk",
+    "recolored_lit_pixels": 0,
+    "changed_floor_pixels": 71206
+  },
+  "0x7F": {
+    "scene": "Large capsule",
+    "recolored_lit_pixels": 0,
+    "changed_floor_pixels": 71206
+  },
+  "visible_width_transition_rows": {
+    "earlier": [
+      258,
+      270,
+      290,
+      320,
+      360,
+      410
+    ],
+    "corrected": [
+      282,
+      326,
+      386,
+      422
+    ]
+  },
+  "verified_active_pixels": 2457600
+}

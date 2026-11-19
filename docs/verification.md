@@ -14,6 +14,7 @@ bash test/run-rtl.sh
 | --- | --- |
 | [`test.py`](../test/test.py) and [`tb.v`](../test/tb.v) | Startup, output enables, HSYNC width, default active RGB and healthy BIST. The same suite runs on the RTL and the Tiny Tapeout routed model. |
 | [`tb_torus_pose.v`](../test/rtl/tb_torus_pose.v) | Seven full rasters with sync, blanking, the exact 32,968-pixel annulus and 14,503-pixel capsule, and qualified pose transitions |
+| [`tb_user_profiles.v`](../test/rtl/tb_user_profiles.v) | All 32 disk and capsule profiles, exact silhouettes, sync and blanking, plus mixed scene transitions and diagnostic entry |
 | [`tb_rayforge_3d.v`](../test/rtl/tb_rayforge_3d.v) | Full-frame torus checks, scene switching, cube and torus PPM captures, and normal display selection |
 | [`tb_scene_stability.v`](../test/rtl/tb_scene_stability.v) | Rejects an excursion between matching blanking samples and accepts a stable cube request |
 | [`tb_restart_phases.v`](../test/rtl/tb_restart_phases.v) | Pin behavior through 84 phased reset and enable releases |
@@ -31,4 +32,6 @@ Use the Actions run for the exact source commit. Check the mapped area against 1
 
 ## Image provenance
 
-The README gallery and [edge-lighting comparison](images/edge-lighting.png) show VGA pin captures from routed simulation. Each raster has 420,000 samples. The gallery uses three static scene words, `0x00` for face-on, `0x04` for edge-on and `0x02` for cube. The color decoder uses the Tiny VGA pin mapping and the four digital levels 0, 85, 170 and 255. The VGA circuit is evaluated ahead of analog output stages and display calibration.
+The [interactive demo](demo.html) contains 40 RTL VGA pin captures from the programmable revision with the checkerboard and palette fixes. Each capture was checked for the complete 800×525 raster, sync polarity and blanking, then decoded to native 640×480 six-bit RGB. The demo covers all sizes of both programmable shape families and eight fixed scene and diagnostic views. The [gallery](images/visual-gallery.png) shows selected captures. The [before-and-after crop](images/visual-cleanup.png) highlights the floor and lighting changes. [Eight-frame pixel comparison](../evaluation/visual-cleanup-results.json) · [All-profile pin oracle log](../evaluation/all-profiles-check.txt)
+
+The [historical edge-lighting comparison](images/edge-lighting.png) and [original gallery](images/vga-scenes.png) show routed VGA pin captures from the fixed-geometry revision. The decoder uses the Tiny VGA pin mapping and the four digital levels 0, 85, 170 and 255. Digital captures represent the signal ahead of the analog output and display calibration.

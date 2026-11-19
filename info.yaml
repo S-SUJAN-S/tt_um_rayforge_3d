@@ -3,7 +3,7 @@ project:
   title:        "RayForge-X: Analytic VGA Scene Renderer"
   author:       "Sujan S, Tejasvi R Shankar, Yogesh Mahesh Bisnal, Prathik P Kekare"
   discord:      ""
-  description:  "Single-tile 640x480 VGA renderer with exact face-on and edge-on torus silhouettes"
+  description:  "Single-tile 640x480 VGA renderer with programmable disk and capsule sizes, torus views and a cube"
   language:     "Verilog"
   clock_hz:     25175000
 
@@ -26,13 +26,13 @@ project:
 # The pinout of your project. Leave unused pins blank. DO NOT delete or add any pins.
 pinout:
   # Inputs
-  ui[0]: "Light orbit enable"
-  ui[1]: "Object select (0 torus, 1 cube)"
-  ui[2]: "Torus pose (0 face-on, 1 edge-on)"
-  ui[3]: "shading_mode[0]"
-  ui[4]: "shading_mode[1]"
-  ui[5]: "light_angle[0]"
-  ui[6]: "light_angle[1]"
+  ui[0]: "Orbit enable / profile family"
+  ui[1]: "Scene select bit 0"
+  ui[2]: "Scene select bit 1"
+  ui[3]: "Shading mode bit 0 / radius bit 0"
+  ui[4]: "Shading mode bit 1 / radius bit 1"
+  ui[5]: "Light angle bit 0 / radius bit 2"
+  ui[6]: "Light angle bit 1 / radius bit 3"
   ui[7]: "Visibility self-test request"
 
   # Outputs (Tiny VGA PMOD)

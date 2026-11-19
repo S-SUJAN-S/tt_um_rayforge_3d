@@ -119,7 +119,9 @@ module tt_um_rayforge_3d (
         end
     end
 
-    wire anim_en = active_scene[0];
+    // 11 on ui_in[2:1] assigns the remaining scene bits to a user profile.
+    wire profile_mode = active_scene[6] && active_scene[1];
+    wire anim_en = active_scene[0] && !profile_mode;
     reg [2:0] anim_light;
     reg [1:0] frame_div;
     always @(posedge clk) begin
@@ -133,10 +135,11 @@ module tt_um_rayforge_3d (
         end
     end
 
-    wire [2:0] active_light = anim_en ? anim_light : {active_scene[5:4], 1'b0};
-    wire       geom_sel     = active_scene[1];
-    wire       torus_edge_on = active_scene[6];
-    wire [1:0] shading_mode = active_scene[3:2];
+    wire [2:0] active_light = anim_en ? anim_light :
+                              {active_scene[5:4] & {2{!profile_mode}}, 1'b0};
+    wire       geom_sel = active_scene[1] && !active_scene[6];
+    wire       torus_edge_on = active_scene[6] && (!active_scene[1] || active_scene[0]);
+    wire [1:0] shading_mode = active_scene[3:2] | {2{profile_mode}};
 
     // =========================================================================
     // 5. BANDED CHECKERBOARD AND SCREEN-SPACE SHADOW
@@ -174,6 +177,8 @@ module tt_um_rayforge_3d (
         .video_active   (video_active),
         .geom_sel       (geom_sel),
         .torus_edge_on  (torus_edge_on),
+        .profile_mode   (profile_mode),
+        .profile_radius (active_scene[5:2]),
         .hit_out        (obj_hit),
         .hit_px         (hit_px),
         .hit_py         (hit_py),

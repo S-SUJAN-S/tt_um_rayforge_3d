@@ -1,0 +1,36 @@
+<local-path> sem\03_VLSI_Physical_Design_EC373TA\el\rayforge_round1\tooling\ucrt64\bin\iverilog.exe: IVERILOG_ICONFIG=<local-path> sem\03_VLSI_Physical_Design_EC373TA\el\rayforge_round6_profiles\evaluation\pin-obbahl5m\compile.cfg
+PASS profile=0 word=06 r_squared=256 pixels=797
+PASS profile=0 word=06 r_squared=256 pixels=797
+PASS profile=1 word=0e r_squared=384 pixels=1201
+PASS profile=2 word=16 r_squared=512 pixels=1609
+PASS profile=3 word=1e r_squared=640 pixels=2017
+PASS profile=4 word=26 r_squared=768 pixels=2409
+PASS profile=5 word=2e r_squared=896 pixels=2801
+PASS profile=6 word=36 r_squared=1024 pixels=3209
+PASS profile=7 word=3e r_squared=1152 pixels=3597
+PASS profile=8 word=46 r_squared=1280 pixels=4017
+PASS profile=9 word=4e r_squared=1408 pixels=4421
+PASS profile=10 word=56 r_squared=1536 pixels=4825
+PASS profile=11 word=5e r_squared=1664 pixels=5217
+PASS profile=12 word=66 r_squared=1792 pixels=5629
+PASS profile=13 word=6e r_squared=1920 pixels=6005
+PASS profile=14 word=76 r_squared=2048 pixels=6437
+PASS profile=15 word=7e r_squared=2176 pixels=6841
+PASS profile=16 word=07 r_squared=256 pixels=5021
+PASS profile=17 word=0f r_squared=384 pixels=6193
+PASS profile=18 word=17 r_squared=512 pixels=7369
+PASS profile=19 word=1f r_squared=640 pixels=8545
+PASS profile=20 word=27 r_squared=768 pixels=9449
+PASS profile=21 word=2f r_squared=896 pixels=10353
+PASS profile=22 word=37 r_squared=1024 pixels=11529
+PASS profile=23 word=3f r_squared=1152 pixels=12173
+PASS profile=24 word=47 r_squared=1280 pixels=13105
+PASS profile=25 word=4f r_squared=1408 pixels=14021
+PASS profile=26 word=57 r_squared=1536 pixels=14937
+PASS profile=27 word=5f r_squared=1664 pixels=15585
+PASS profile=28 word=67 r_squared=1792 pixels=16509
+PASS profile=29 word=6f r_squared=1920 pixels=17141
+PASS profile=30 word=77 r_squared=2048 pixels=18085
+PASS profile=31 word=7f r_squared=2176 pixels=18745
+PASS 32 user geometry frames, frame qualification and BIST
+<local-path> sem\03_VLSI_Physical_Design_EC373TA\el\rayforge_round6_profiles\test\rtl\tb_user_profiles.v:125: $finish called at 1618274796386 (1ps)

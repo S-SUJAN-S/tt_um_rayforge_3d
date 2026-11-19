@@ -1,10 +1,12 @@
 # Research evidence
 
+The programmable candidate extends the same arithmetic to 32 input-defined masks. The current manuscript includes the recent literature, proof, and candidate results. The comparator ablation holds the VGA and geometry contract fixed while testing the area cost of separate thresholds. The fixed-geometry experiments below serve as separately identified evidence. [Current manuscript](manuscript.md) · [Comparator ablation](../research/README.md)
+
 RayForge-X evaluates two fixed orthographic torus projections using a shared finite-difference datapath. For integer radii `R > r > 0`, the face-on mask has bounds `L=(R−r)²` and `U=(R+r)²`. The edge-on mask uses a squared distance to the projected centerline segment with bound `r²`. Adding the constant `B=U−r²` lets both masks use `L` and `U`. The biased quantity automatically clears the lower threshold because `B−L=r(4R−r)>0`. The chip realizes `R=75` and `r=35`. [Architecture derivation](architecture.md)
 
 ## Same-output synthesis comparison
 
-The four full-chip measurements hold the downstream renderer, diagnostic, clock and pinned synthesis flow constant. The baselines retain the exact two masks and the same geometry latency.
+The four full-chip measurements use the published fixed-geometry revision. They hold the downstream renderer, diagnostic, clock and pinned synthesis flow constant. The baselines retain the exact two masks and the same geometry latency.
 
 | Geometry implementation | Mapped area | Margin to 11,500 µm² |
 | --- | ---: | ---: |
@@ -13,7 +15,7 @@ The four full-chip measurements hold the downstream renderer, diagnostic, clock 
 | Shared accumulator, separate threshold tests | 11,412.1952 µm² | +87.8048 µm² |
 | Shared accumulator, biased thresholds | 11,363.3984 µm² | +136.6016 µm² |
 
-Sharing saves 933.3952 µm² before biasing. Sharing the threshold tests saves a further 48.7968 µm². These are flattened full-chip synthesis results in LibreLane 3.0.14 with Sky130HD and PDK revision `8afc8346a57fe1ab7934ba5a6056ea8b43078e71`. The four implementations matched at 1,680,000 cycle-aligned geometry samples, including all hit vectors. Each alternative also passed the same seven-frame pose test. [Comparison sources and replay](../research/README.md)
+Sharing saves 933.3952 µm² before biasing. Sharing the threshold tests saves a further 48.7968 µm². These are flattened full-chip synthesis results in LibreLane 3.0.14 with Sky130HD and PDK revision `8afc8346a57fe1ab7934ba5a6056ea8b43078e71`. The four implementations matched at 1,680,000 cycle-aligned geometry samples, including all hit vectors. Each alternative also passed the same seven-frame pose test. [Comparison sources and replay](https://github.com/S-SUJAN-S/tt_um_rayforge_3d/tree/32cfd45/research)
 
 ## Shading accuracy
 

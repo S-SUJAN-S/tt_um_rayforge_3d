@@ -1,0 +1,1 @@
+Standalone Sky130HD Yosys/ABC area: 11407.1904 um^2
