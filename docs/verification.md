@@ -28,6 +28,8 @@ The standalone runner puts logs and the two PPM captures in `test/sim_build/stan
 
 The [GDS workflow](../.github/workflows/gds.yaml) builds the Sky130A macro using the `ttsky26e` flow. Its jobs also run Tiny Tapeout precheck, the routed Cocotb suite and the layout viewer. The [Docs workflow](../.github/workflows/docs.yaml) builds the shuttle datasheet from `info.yaml` and `docs/info.md`.
 
+Placement and routing target six loads per driver to allow room for antenna diodes. Extracted sign-off uses the nine-load limit. [Implementation constraints](../src/pnr.sdc) · [LibreLane timing closure](https://librelane.readthedocs.io/en/stable/usage/timing_closure/index.html)
+
 Use the Actions run for the exact source commit. Check the mapped area against 11,500 µm², setup and hold, the 0.75 ns transition limit, the configured fanout limit, route DRC, LVS, antenna and precheck. Selecting that revision in the Tiny Tapeout portal is a separate fabrication step. [GitHub Actions](https://github.com/S-SUJAN-S/tt_um_rayforge_3d/actions) · [Tiny Tapeout submission guide](https://tinytapeout.com/guides/advanced-workshop/submit-your-design/)
 
 ## Image provenance
