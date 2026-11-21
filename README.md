@@ -57,6 +57,8 @@ The 1×1 Sky130HD design targets an **11,500 µm²** mapped area cap. The checke
 
 ## Credits & Course Affiliation
 
-This project was executed by **Sujan S, Tejasvi R Shankar, Yogesh Mahesh Bisnal, and Prathik P Kekare** as an **Experiential Learning (EL)** project under the **VLSI Physical Design course (EC373TA)**.
+This project was executed by **Sujan S, Tejasvi R Shankar, Yogesh Mahesh Bisnal, and Prathik P Kekare** as an **Experiential Learning (EL)** project under the **VLSI Physical Design course (EC373TA)**, under the guidance of **Dr. Shylashree N** (Course Faculty & Guide).
+
+We sincerely thank the Department of Electronics and Communication Engineering (ECE) and RV College of Engineering (RVCE), Bangalore, for their continuous support and academic resources in facilitating this tapeout.
 
 [Apache 2.0 license](LICENSE)

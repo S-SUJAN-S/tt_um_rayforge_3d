@@ -28,5 +28,7 @@ When `ui[2:1]` is `11`, `ui[0]` selects a disk (0) or capsule (1) and `ui[6:3]` 
 
 ## Credits
 
-This project was executed by **Sujan S, Tejasvi R Shankar, Yogesh Mahesh Bisnal, and Prathik P Kekare** as an **Experiential Learning (EL)** project under the **VLSI Physical Design course (EC373TA)**.
+This project was executed by **Sujan S, Tejasvi R Shankar, Yogesh Mahesh Bisnal, and Prathik P Kekare** as an **Experiential Learning (EL)** project under the **VLSI Physical Design course (EC373TA)**, under the guidance of **Dr. Shylashree N** (Course Faculty & Guide).
+
+We sincerely thank the Department of Electronics and Communication Engineering (ECE) and RV College of Engineering (RVCE), Bangalore, for their continuous support and academic resources in facilitating this tapeout.
 
