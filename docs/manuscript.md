@@ -1,6 +1,7 @@
 # RayForge-X: Exact Parametric Silhouettes on a Single-Tile VGA ASIC
 
-Sujan S, Tejasvi R Shankar, Yogesh Mahesh Bisnal, and Prathik P Kekare
+**Authors**: Sujan S, Tejasvi R Shankar, Yogesh Mahesh Bisnal, and Prathik P Kekare  
+*Course: VLSI Physical Design (EC373TA) — Experiential Learning (EL)*
 
 Revision 17 November 2026. The routing measurements in this draft describe the earlier programmable RTL before the checkerboard and palette update. The current source and its separate synthesis result are documented in [Verification](verification.md).
 

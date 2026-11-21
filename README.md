@@ -55,4 +55,8 @@ The standalone suite generates VGA frame captures under `test/sim_build/standalo
 
 The 1×1 Sky130HD design targets an **11,500 µm²** mapped area cap. The checkerboard and palette update mapped to **11,407.1904 µm²** in standalone synthesis. GitHub Actions reports the Tiny Tapeout build and precheck for each published commit. [Verification evidence](docs/verification.md) · [GitHub Actions](https://github.com/S-SUJAN-S/tt_um_rayforge_3d/actions)
 
-**Authors** Sujan S, Tejasvi R Shankar, Yogesh Mahesh Bisnal, and Prathik P Kekare. [Apache 2.0 license](LICENSE)
+## Credits & Course Affiliation
+
+This project was executed by **Sujan S, Tejasvi R Shankar, Yogesh Mahesh Bisnal, and Prathik P Kekare** as an **Experiential Learning (EL)** project under the **VLSI Physical Design course (EC373TA)**.
+
+[Apache 2.0 license](LICENSE)
