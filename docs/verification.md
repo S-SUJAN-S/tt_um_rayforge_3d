@@ -32,8 +32,6 @@ Placement and routing target seven loads per driver to allow room for antenna di
 
 Use the Actions run for the exact source commit. Check the mapped area against 11,500 µm², setup and hold, the 0.75 ns transition limit, the configured fanout limit, route DRC, LVS, antenna and precheck. Selecting that revision in the Tiny Tapeout portal is a separate fabrication step. [GitHub Actions](https://github.com/S-SUJAN-S/tt_um_rayforge_3d/actions) · [Tiny Tapeout submission guide](https://tinytapeout.com/guides/advanced-workshop/submit-your-design/)
 
-## Image provenance
+## VGA captures
 
-The [interactive demo](demo.html) contains 40 RTL VGA pin captures from the programmable revision with the checkerboard and palette fixes. Each capture was checked for the complete 800×525 raster, sync polarity and blanking, then decoded to native 640×480 six-bit RGB. The demo covers all sizes of both programmable shape families and eight fixed scene and diagnostic views. The [gallery](images/visual-gallery.png) shows selected captures. The [before-and-after crop](images/visual-cleanup.png) highlights the floor and lighting changes. [Eight-frame pixel comparison](../evaluation/visual-cleanup-results.json) · [All-profile pin oracle log](../evaluation/all-profiles-check.txt)
-
-The [historical edge-lighting comparison](images/edge-lighting.png) and [original gallery](images/vga-scenes.png) show routed VGA pin captures from the fixed-geometry revision. The decoder uses the Tiny VGA pin mapping and the four digital levels 0, 85, 170 and 255. Digital captures represent the signal ahead of the analog output and display calibration.
+The [interactive demo](demo.html) contains 40 RTL VGA pin captures. Each capture covers the complete 800×525 raster and was checked for sync polarity and blanking before decoding to 640×480 display pixels. The demo covers eight fixed views and all 32 programmable disk and capsule profiles. The decoder uses the Tiny VGA pin mapping and the four digital levels 0, 85, 170 and 255. [Scene gallery](images/visual-gallery.png) · [All-profile pin oracle log](../evaluation/all-profiles-check.txt)
