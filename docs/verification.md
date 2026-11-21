@@ -16,6 +16,7 @@ bash test/run-rtl.sh
 | [`tb_torus_pose.v`](../test/rtl/tb_torus_pose.v) | Seven full rasters with sync, blanking, the exact 32,968-pixel annulus and 14,503-pixel capsule, and qualified pose transitions |
 | [`tb_user_profiles.v`](../test/rtl/tb_user_profiles.v) | All 32 disk and capsule profiles, exact silhouettes, sync and blanking, plus mixed scene transitions and diagnostic entry |
 | [`tb_rayforge_3d.v`](../test/rtl/tb_rayforge_3d.v) | Full-frame torus checks, scene switching, cube and torus PPM captures, and normal display selection |
+| [`tb_shadow_profiles.v`](../test/rtl/tb_shadow_profiles.v) | Eleven shadow footprints across all eight light directions, radius-group growth, reset and raster blanking |
 | [`tb_scene_stability.v`](../test/rtl/tb_scene_stability.v) | Rejects an excursion between matching blanking samples and accepts a stable cube request |
 | [`tb_restart_phases.v`](../test/rtl/tb_restart_phases.v) | Pin behavior through 84 phased reset and enable releases |
 | [`tb_renderer_visibility_bist.v`](../test/rtl/tb_renderer_visibility_bist.v) | 1,060-clock healthy PASS and injected active-black, blanking-leak and single-pixel faults |

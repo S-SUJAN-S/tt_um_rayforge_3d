@@ -28,7 +28,7 @@ flowchart TD
     TIM -->|"Pixel coordinates and active-video flag"| G1
     TIM -->|"Pixel coordinates and active-video flag"| BG
     DECODE -->|"Shape and radius"| G1
-    DECODE -->|"Light direction"| BG
+    DECODE -->|"Shape, radius group and light"| BG
     DECODE -->|"Palette and light direction"| G3
     G3 -->|"RGB, blanked outside active video"| OUT["Tiny VGA PMOD pin mapping"]
     TIM -->|"Aligned active-low HSYNC and VSYNC"| OUT
@@ -84,7 +84,7 @@ The programmable mode loads a radius-dependent seed into the same accumulator. A
 
 The light uses a fixed positive vertical component and eight signed horizontal/depth directions. Opposite directions share the same arithmetic. A six-bit signed dot product selects one of seven object colors. The lit palette uses distinct RGB codes from the sky, floor and shadow. The normal, depth and silhouette modes use alternate object colors with the same background.
 
-The checkerboard becomes visible at row 254. A shared row decoder selects horizontal pitch, line phase and vertical parity. The complete checker rows grow from 12 to 40 scanlines toward the foreground. Shadow width changes in screen-space row bands, with an X offset selected by the light angle. The resulting shadow is a screen-space effect.
+The checkerboard becomes visible at row 254. A shared row decoder selects horizontal pitch, line phase and vertical parity. The complete checker rows grow from 12 to 40 scanlines toward the foreground. The shadow is a screen-space footprint on an eight-pixel grid. The face-on torus uses a hollow mask, the edge-on torus uses an elongated mask, and the cube tapers its corners. Programmable disks and capsules use four footprint sizes selected by the upper two radius bits. The light direction shifts the footprint horizontally and trims half of its far edge when the light has a depth component. The footprint shares the ground path’s timing and stays behind the object.
 
 ## Controls and diagnostic
 

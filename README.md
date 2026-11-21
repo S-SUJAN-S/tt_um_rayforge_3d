@@ -18,8 +18,8 @@ flowchart TD
     SC --> GE["Analytic shape coverage and normals"]
     SC --> CO["Lighting and RGB compositor"]
     VT -->|"Coordinates and active video"| GE
-    VT -->|"Coordinates"| BG["Sky, checkerboard and shadow"]
-    SC -->|"Light direction"| BG
+    VT -->|"Coordinates"| BG["Sky, checkerboard and shape-dependent shadow"]
+    SC -->|"Shape, radius group and light"| BG
     GE --> CO
     BG --> CO
     CO -->|"6-bit RGB"| VG["Tiny VGA PMOD and display"]
@@ -29,7 +29,7 @@ flowchart TD
 1. **Capture the controls.** Two flip-flops synchronize the switch word. The chip latches it during vertical blank after a full stable frame interval. Reset release is synchronized to the same pixel clock.
 2. **Scan the raster.** Hardware counters supply the current pixel position and active-video flag. Each frame has 800 × 525 total samples, including blanking.
 3. **Classify the pixel.** The geometry pipeline computes object coverage. A shared 15-bit accumulator evaluates the curved silhouettes with finite differences. Fixed integer comparisons classify the cube faces.
-4. **Build the background.** A parallel path generates the checkerboard and screen-space shadow. The sky, floor and object paths are aligned before compositing.
+4. **Build the background.** A parallel path generates the checkerboard and a shadow footprint selected by the shape, radius group, and light direction. The sky, floor and object paths are aligned before compositing.
 5. **Compose and output.** The shader selects lit colors, normal colors, a depth proxy, or a silhouette. The chip emits two bits per color channel and aligned sync signals at one sample per clock. The display shows 640 × 480 pixels at 59.94 Hz.
 
 The rendering path uses three registered stages and operates without a framebuffer or external memory. A mode-dependent seed lets the torus, disk and capsule share the same accumulator and pair of coverage comparisons. A separate on-chip visibility self-test samples the pre-pad RGB stream and reports status on the auxiliary pins. [Detailed RTL flowchart and module map](docs/architecture.md)
@@ -59,7 +59,7 @@ make -C test
 bash test/run-rtl.sh
 ```
 
-The Sky130HD design occupies one 161.000 × 111.520 µm tile. The verified hardware build mapped to **11,347.1328 µm²**. [Verification procedure](docs/verification.md) · [Tiny Tapeout build and precheck](https://github.com/S-SUJAN-S/tt_um_rayforge_3d/actions/runs/44466026180)
+The Sky130HD design occupies one 161.000 × 111.520 µm tile. The mapped standard-cell area limit for the project is **11,500 µm²**. [Verification procedure](docs/verification.md) · [Tiny Tapeout build and precheck](https://github.com/S-SUJAN-S/tt_um_rayforge_3d/actions/workflows/gds.yaml)
 
 ## Project files
 

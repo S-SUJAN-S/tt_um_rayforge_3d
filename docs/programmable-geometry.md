@@ -25,7 +25,7 @@ The extension evaluates `D = x² + y²` for the disk and `D = max(|x| − 64, 0)
 
 The disk walks screen columns 256 through 383. The capsule walks 192 through 447 and holds the horizontal term across its central segment. Both walks begin and end with the same horizontal squared distance `64²`. At the first candidate row, the accumulator seeds to `64² + 110² + B = 28040 − 128k`. Only the seed depends on the input radius. The same 15-bit state, signed difference adder and comparator pair render the fixed torus poses and both programmable families.
 
-This mode synthesizes analytic silhouettes from a geometry word. The available inputs cover two shape families and 16 radius codes, with a constant center and capsule length.
+This mode synthesizes analytic silhouettes from a geometry word. The available inputs cover two shape families and 16 radius codes, with a constant center and capsule length. The floor uses a coarser screen-space footprint. Radius codes 0–3, 4–7, 8–11, and 12–15 select four increasing shadow sizes per family.
 
 ## Verify
 
