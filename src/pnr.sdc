@@ -1,4 +1,4 @@
 # Leave two loads of headroom for antenna diodes added during routing.
-# Sign-off uses LibreLane's default SDC and MAX_FANOUT_CONSTRAINT = 9.
+# Extracted STA reads signoff.sdc and uses MAX_FANOUT_CONSTRAINT = 9.
 source [file join $::env(SCRIPTS_DIR) base.sdc]
 set_max_fanout 7 [current_design]

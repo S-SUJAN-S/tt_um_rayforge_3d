@@ -19,7 +19,7 @@ Sharing saves 933.3952 µm² before biasing. Sharing the threshold tests saves a
 
 ## Shading accuracy
 
-The integer masks match the analytic reference exactly at both tested viewpoints. Lighting uses quantized normal proxies. At 14,503 visible edge-on pixels, the new classifier reduces mean angular error from 32.186° to 15.377°. Across eight light directions and 116,024 pixel/light samples, mean error against the analytic normal passed through the same seven-level palette falls from 1.1194 to 0.7012 palette steps at reference gain 7. Mean palette error also improves at gains 6 and 8. The face-on rendering is identical. [Matched routed VGA frames](images/edge-lighting.png)
+The integer masks match the analytic reference exactly at both tested viewpoints. Lighting uses quantized normal proxies. At 14,503 visible edge-on pixels, the new classifier reduces mean angular error from 32.186° to 15.377°. Across eight light directions and 116,024 pixel/light samples, mean error against the analytic normal passed through the same seven-level palette falls from 1.1194 to 0.7012 palette steps at reference gain 7. Mean palette error also improves at gains 6 and 8. The face-on rendering is identical.
 
 ## Physical and diagnostic evidence
 

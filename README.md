@@ -1,34 +1,57 @@
 # RayForge-X
 
-RayForge-X is a single-tile VGA graphics ASIC for Tiny Tapeout TTSKY26e. It draws a face-on or edge-on torus, a projected cube, or a disk or capsule whose size comes from a user input word. It generates every pixel as the VGA beam advances, using one 25.175 MHz clock and no framebuffer or external memory. [Programmable geometry and example input words](docs/programmable-geometry.md)
+RayForge-X is a **single-tile VGA graphics ASIC** for Tiny Tapeout TTSKY26e. It draws two torus views, a projected cube, and programmable disks and capsules. Set an input word to choose a shape, its size where supported, or a display mode. The chip generates each pixel as the VGA beam advances.
 
-![Before-and-after VGA crops showing the checkerboard and palette fixes](docs/images/visual-cleanup.png)
+![RayForge-X VGA output showing a face-on torus, a cube, a programmable disk and a programmable capsule](docs/images/project-preview.png)
 
-[Open the interactive VGA demo](docs/demo.html) · [Browse the updated scene gallery](docs/images/visual-gallery.png)
+[Scene gallery](docs/images/visual-gallery.png) · [Interactive VGA demo](docs/demo.html) · [Physical layout viewer](https://s-sujan-s.github.io/tt_um_rayforge_3d/)
 
-The demo is a self-contained HTML file. Download it and open it in your browser to inspect the 40 captured rasters.
+Download the demo HTML and open it in a browser to explore 40 VGA captures, including all 32 programmable profiles.
 
-## What the chip does
+## System architecture
 
-| Feature | Implementation |
+```mermaid
+flowchart TD
+    UI["Input switches"] --> SC["Synchronize and latch scene at vertical blank"]
+    CR["25.175 MHz clock, reset and enable"] --> VT["VGA timing and pixel coordinates"]
+    VT -->|"Vertical blank"| SC
+    SC --> GE["Analytic shape coverage and normals"]
+    SC --> CO["Lighting and RGB compositor"]
+    VT -->|"Coordinates and active video"| GE
+    VT -->|"Coordinates"| BG["Sky, checkerboard and shape-dependent shadow"]
+    SC -->|"Shape, radius group and light"| BG
+    GE --> CO
+    BG --> CO
+    CO -->|"6-bit RGB"| VG["Tiny VGA PMOD and display"]
+    VT -->|"Aligned HSYNC and VSYNC"| VG
+```
+
+1. **Capture the controls.** Two flip-flops synchronize the switch word. The chip latches it during vertical blank after a full stable frame interval. Reset release is synchronized to the same pixel clock.
+2. **Scan the raster.** Hardware counters supply the current pixel position and active-video flag. Each frame has 800 × 525 total samples, including blanking.
+3. **Classify the pixel.** The geometry pipeline computes object coverage. A shared 15-bit accumulator evaluates the curved silhouettes with finite differences. Fixed integer comparisons classify the cube faces.
+4. **Build the background.** A parallel path generates the checkerboard and a shadow footprint selected by the shape, radius group, and light direction. The sky, floor and object paths are aligned before compositing.
+5. **Compose and output.** The shader selects lit colors, normal colors, a depth proxy, or a silhouette. The chip emits two bits per color channel and aligned sync signals at one sample per clock. The display shows 640 × 480 pixels at 59.94 Hz.
+
+The rendering path uses three registered stages and operates without a framebuffer or external memory. A mode-dependent seed lets the torus, disk and capsule share the same accumulator and pair of coverage comparisons. A separate on-chip visibility self-test samples the pre-pad RGB stream and reports status on the auxiliary pins. [Detailed RTL flowchart and module map](docs/architecture.md)
+
+## Try an input
+
+| Input word | Frame shown |
 | --- | --- |
-| Video | 640×480 visible pixels, 800×525 total raster, 59.94 Hz at 25.175 MHz |
-| Throughput | One sample per clock through three registered rendering stages |
-| Torus | Exact integer annulus face-on and exact integer capsule edge-on, using the same 15-bit recurrence |
-| User geometry | Disk or capsule with an input-defined squared radius, 16 values per family |
-| Other geometry | Projected cube with three fixed face normals |
-| Display | Six-bit RGB on the Tiny VGA PMOD, with lit, normal, depth-proxy and silhouette views |
-| Controls | Four manual light directions or eight animated directions. Scene updates qualify during vertical blank. |
-| Diagnostic | 1,024-sample pre-pad RGB visibility check with a seven-segment status and PASS output |
-| Physical target | Sky130HD, 1×1 tile, 161.000 × 111.520 µm |
+| `0x00` | Lit face-on torus |
+| `0x02` | Lit projected cube |
+| `0x04` | Lit edge-on torus |
+| `0x08` | Face-on torus normals |
+| `0x3E` | Disk, radius about 33.94 px |
+| `0x3F` | Capsule, end-cap radius about 33.94 px |
 
-“Exact” applies to the torus, disk, and capsule silhouettes at integer pixel centers. Lighting uses quantized normals and a fixed palette. The light can orbit automatically while the torus has two switch-selected poses.
+In programmable mode, one switch selects the shape family and four switches select one of 16 squared radii. For `0x3F`, the decoder selects a capsule with radius code 7. The geometry stage tests each pixel against the squared radius `256 + 128 × 7 = 1,152` and displays the covered pixels in yellow. Shape centers and capsule length are fixed. [Full input encoding and examples](docs/programmable-geometry.md)
 
-## Run it
+## Hardware and simulation
 
-For hardware, connect a Tiny VGA PMOD, supply a 25.175 MHz clock, select the design and release reset. With all scene switches low, the first scene is the lit face-on torus. [Pinout and bring-up](docs/info.md)
+Connect a Tiny VGA PMOD, supply a 25.175 MHz clock, select the design, and release reset. Start with the scene inputs low for the lit face-on torus. Hold a new input word steady for up to two frames to apply it. [Pinout and bring-up](docs/info.md)
 
-For simulation, install Icarus Verilog, GNU Make and Python, then run these commands from the repository root.
+To simulate, install Icarus Verilog, GNU Make and Python, then run the following from the repository root.
 
 ```sh
 python -m pip install -r test/requirements.txt
@@ -36,24 +59,19 @@ make -C test
 bash test/run-rtl.sh
 ```
 
-The standalone suite generates VGA frame captures under `test/sim_build/standalone/`. [Test coverage and commands](docs/verification.md)
+The Sky130HD design occupies one 161.000 × 111.520 µm tile. The mapped standard-cell area limit for the project is **11,500 µm²**. [Verification procedure](docs/verification.md) · [Tiny Tapeout build and precheck](https://github.com/S-SUJAN-S/tt_um_rayforge_3d/actions/workflows/gds.yaml)
 
-## Repository guide
+## Project files
 
-| Path | Purpose |
+| Path | Contents |
 | --- | --- |
-| [`src/`](src) | Synthesizable RTL and the single-tile physical configuration |
-| [`info.yaml`](info.yaml) | Tiny Tapeout source manifest, clock, tile size and pin labels |
-| [`docs/info.md`](docs/info.md) | Shuttle datasheet with hardware setup and controls |
-| [`docs/architecture.md`](docs/architecture.md) | Pipeline, VGA timing, geometry arithmetic and diagnostic contract |
-| [`docs/research.md`](docs/research.md) | Prior art, same-output area comparison, lighting accuracy and limitations |
-| [`docs/manuscript.md`](docs/manuscript.md) | Research manuscript for the programmable candidate, including the literature, coverage proof and results |
-| [`research/`](research/README.md) | Reproducible Sky130HD comparator ablation and SAT equivalence check for the programmable geometry |
-| [Fixed-geometry research archive](https://github.com/S-SUJAN-S/tt_um_rayforge_3d/tree/32cfd45/research) | Independent torus reference and geometry comparison RTL for the fixed-geometry revision |
-| [`test/`](test) | Cocotb, full-frame hardware simulation and fault tests |
-| [CI workflows](.github/workflows) | RTL regression and Tiny Tapeout GDS, precheck, gate simulation, datasheet and viewer builds |
-
-The 1×1 Sky130HD design targets an **11,500 µm²** mapped area cap. The checkerboard and palette update mapped to **11,407.1904 µm²** in standalone synthesis. GitHub Actions reports the Tiny Tapeout build and precheck for each published commit. [Verification evidence](docs/verification.md) · [GitHub Actions](https://github.com/S-SUJAN-S/tt_um_rayforge_3d/actions)
+| [`src/`](src) | Synthesizable Verilog and physical design constraints |
+| [`info.yaml`](info.yaml) | Tiny Tapeout manifest, clock, tile size and pin labels |
+| [Architecture](docs/architecture.md) | Complete signal flow, VGA timing, geometry and diagnostic |
+| [Datasheet](docs/info.md) | Hardware setup and switch controls |
+| [Research manuscript](docs/manuscript.md) | Literature, shared accumulator derivation, and evaluation |
+| [Reproduction scripts](research/README.md) | Geometry equivalence proof and synthesis experiment |
+| [`test/`](test) | Cocotb and standalone raster simulations |
 
 ## Credits & Course Affiliation
 

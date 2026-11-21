@@ -2,6 +2,50 @@
 
 RayForge-X generates the scene directly in raster order. It has one pixel clock domain. From the beam coordinate to RGB, one register classifies the pixel, one selects the geometry and shading vector, and one registers the palette output. The ground compositor has an alignment register so the object, floor and sky refer to the same coordinate. The timing generator aligns the sync pins with RGB.
 
+## Complete signal flow
+
+```mermaid
+flowchart TD
+    CLK["25.175 MHz pixel clock"] --> TIM["VGA raster counters"]
+    RST["Reset and Tiny Tapeout enable"] --> SYNC["Two-flop reset release"]
+    SYNC --> TIM
+    SYNC -.->|"Internal reset"| CFG
+    SW["Scene switches ui[6:0]"] --> IN["Two-flop input synchronizers"]
+    IN --> CFG["Stable-word qualifier and vertical-blank latch"]
+    TIM -->|"Start of vertical blank"| CFG
+    CFG --> DECODE["Shape, radius, palette and light direction"]
+
+    subgraph PIXELS["Registered pixel pipeline"]
+        G1["Stage 1: finite-difference coverage or cube face tests"]
+        G2["Stage 2: select object hit and normal or shading vector"]
+        G3["Stage 3: palette selection and RGB composition"]
+        G1 --> G2 --> G3
+        BG["Checker phase, shadow and fog"]
+        ALIGN["Ground alignment register and sky band"]
+        BG --> ALIGN --> G3
+    end
+
+    TIM -->|"Pixel coordinates and active-video flag"| G1
+    TIM -->|"Pixel coordinates and active-video flag"| BG
+    DECODE -->|"Shape and radius"| G1
+    DECODE -->|"Shape, radius group and light"| BG
+    DECODE -->|"Palette and light direction"| G3
+    G3 -->|"RGB, blanked outside active video"| OUT["Tiny VGA PMOD pin mapping"]
+    TIM -->|"Aligned active-low HSYNC and VSYNC"| OUT
+    OUT --> DISPLAY["640 × 480 VGA display"]
+
+    REQ["Diagnostic request ui[7]"] --> QUAL["Synchronizer and 32-clock qualifier"]
+    TIM -->|"Beam position and frame tick"| REF["Independent RGB visibility reference"]
+    REF --> BIST["Visibility comparison and 1,024-sample signature"]
+    G3 -->|"Pre-pad RGB visibility"| BIST
+    QUAL --> BIST
+    BIST --> AUX["Seven-segment status and PASS on uio"]
+```
+
+All stages share the pixel clock. Arrow labels show the main data and control signals.
+
+## RTL modules
+
 | Source | Role |
 | --- | --- |
 | [`tt_um_rayforge_3d.v`](../src/tt_um_rayforge_3d.v) | Tiny Tapeout wrapper, reset and switch synchronizers, scene qualification, pipeline alignment, independent visibility reference and pin mapping |
@@ -40,10 +84,26 @@ The programmable mode loads a radius-dependent seed into the same accumulator. A
 
 The light uses a fixed positive vertical component and eight signed horizontal/depth directions. Opposite directions share the same arithmetic. A six-bit signed dot product selects one of seven object colors. The lit palette uses distinct RGB codes from the sky, floor and shadow. The normal, depth and silhouette modes use alternate object colors with the same background.
 
-The checkerboard becomes visible at row 254. A shared row decoder selects horizontal pitch, line phase and vertical parity. The complete checker rows grow from 12 to 40 scanlines toward the foreground. Shadow width changes in screen-space row bands, with an X offset selected by the light angle. The resulting shadow is a screen-space effect.
+The checkerboard becomes visible at row 254. A shared row decoder selects horizontal pitch, line phase and vertical parity. The complete checker rows grow from 12 to 40 scanlines toward the foreground. The shadow is a screen-space footprint on an eight-pixel grid. The face-on torus uses a hollow mask, the edge-on torus uses an elongated mask, and the cube tapers its corners. Programmable disks and capsules use four footprint sizes selected by the upper two radius bits. The light direction shifts the footprint horizontally and trims half of its far edge when the light has a depth component. The footprint shares the ground path’s timing and stays behind the object.
 
 ## Controls and diagnostic
 
 Reset or deselection asserts an internal reset asynchronously. Two flip-flops synchronize release to the pixel clock. The seven scene bits pass through two synchronizer stages. The renderer commits a word at vertical blank only after it stays stable across a complete interval between blanking samples. A transient excursion between samples invalidates the interval.
 
 The diagnostic request uses a separate two-stage synchronizer and a 32-cycle qualifier. The observer compares actual pre-pad RGB visibility with an independently decoded beam reference, adjusted for renderer latency. It compacts 1,024 mismatch bits into a 16-bit signature. A 10-bit recurrence times the capture independently of the signature and parks after completion. The expected signature is `0x0CB8`. A healthy request produces a steady `P` and PASS output. The sampled window and the black-versus-nonblack observation define the coverage. [Pin controls](info.md) · [Verification scope](verification.md)
+
+
+## From RTL to layout
+
+```mermaid
+flowchart TD
+    RTL["Verilog modules and Tiny Tapeout source manifest"] --> SIM["RTL simulation and full-frame VGA checks"]
+    RTL --> SYN["Sky130HD synthesis"]
+    PNR["Tile, clock and routing constraints"] --> SYN
+    SYN --> LAYOUT["Floorplan, placement, clock tree and routing"]
+    LAYOUT --> GDS["Extracted timing and GDS layout"]
+    GDS --> CHECK["Tiny Tapeout precheck and routed simulation"]
+    GDS --> VIEW["Physical layout viewer"]
+```
+
+[Verification commands and GitHub workflow details](verification.md)

@@ -17,6 +17,10 @@ module perspective_ground (
     input  wire [9:0]  pixel_y,       // Screen Y [0..479]
     input  wire        video_active,  // Active video region
     input  wire [2:0]  light_angle,   // Orbital light angle (0..7)
+    input  wire        cube_select,
+    input  wire        capsule_shape, // Edge-on torus or programmable capsule
+    input  wire        profile_mode,
+    input  wire [1:0]  profile_shadow_size, // Upper radius-code bits
     output reg         is_floor,      // 1 = Ray hits floor plane
     output reg         floor_check,   // 1 = Light tile, 0 = Dark tile
     output reg         in_shadow,     // 1 = Floor pixel is occluded by shadow
@@ -44,28 +48,44 @@ module perspective_ground (
         else                       {k_step, line_phase, v_tile_bit} = {7'd9,  5'd19, 1'b1};
     end
 
-    // -------------------------------------------------------------------------
-    // 2. Dynamic Shadow Position based on light_angle
-    // -------------------------------------------------------------------------
-    reg signed [5:0] shadow_x_center;
+    // Project an eight-pixel-block footprint. Light azimuth shifts the
+    // footprint laterally and adjusts the depth edge.
+    reg [4:0] shadow_center_x;
     always @(*) begin
         case (light_angle)
-            3'd0: shadow_x_center = -6'sd24;
-            3'd1: shadow_x_center = -6'sd16;
-            3'd2: shadow_x_center =  6'sd0;
-            3'd3: shadow_x_center =  6'sd16;
-            3'd4: shadow_x_center =  6'sd24;
-            3'd5: shadow_x_center =  6'sd16;
-            3'd6: shadow_x_center =  6'sd0;
-            3'd7: shadow_x_center = -6'sd16;
+            3'd0: shadow_center_x = 5'd5;
+            3'd1, 3'd7: shadow_center_x = 5'd6;
+            3'd3, 3'd5: shadow_center_x = 5'd10;
+            3'd4: shadow_center_x = 5'd11;
+            default: shadow_center_x = 5'd8;
         endcase
     end
+    wire [4:0] shadow_dx = pixel_x[7:3] - shadow_center_x;
+    wire [3:0] shadow_dy = pixel_y[6:3];
+    // Fold about the center between blocks, with paired distances 0, 0, 1, 1, ...
+    wire [3:0] x_band = shadow_dx[3:0] ^ {4{shadow_dx[4]}};
+    wire [2:0] y_band = shadow_dy[2:0] ^ {3{!shadow_dy[3]}};
 
-    // Both the row bands and horizontal spans are nested, so their union
-    // selects exactly the widest span applicable at a given row.
-    wire row_near = pixel_y >= 10'd286 && pixel_y <= 10'd344;
-    wire row_mid  = pixel_y >= 10'd294 && pixel_y <= 10'd336;
-    wire row_wide = pixel_y >= 10'd304 && pixel_y <= 10'd326;
+    // Profile shadows have four sizes. Their axes grow with the top two
+    // radius bits; the lower bits select finer sizes for the object itself.
+    wire [1:0] size_group = profile_shadow_size;
+    wire [3:0] horizontal_limit = profile_mode ?
+        (capsule_shape ? {2'b10, size_group} : 4'd1 + {2'b00, size_group}) :
+        capsule_shape ? 4'd9 : cube_select ? 4'd4 : 4'd6;
+    wire [2:0] vertical_limit = profile_mode ? {1'b0, size_group} :
+                                 capsule_shape ? 3'd1 : 3'd3;
+    wire torus_hole = !profile_mode && !capsule_shape && !cube_select &&
+                      (x_band < 4'd3) && (y_band < 3'd2);
+    // The cube is tapered more sharply than the curved silhouettes.
+    wire corner_cut = (cube_select && (x_band >= 4'd2) && y_band[1]) ||
+                      ((y_band[1:0] == 2'd3) && (x_band >= 4'd5));
+    // Shorten the far edge by half a row block under a depth-directed light.
+    wire depth_edge = (|light_angle[1:0]) && (y_band == vertical_limit) &&
+                      (pixel_y[6] != light_angle[2]) && (pixel_y[2] == pixel_y[6]);
+    // In active VGA these tests bound the footprint to x=192..447, y=256..383.
+    wire inside_shadow_window = (pixel_x[8] ^ (&pixel_x[7:6])) && (pixel_y[8:7] == 2'd2);
+    wire shadow_hit = inside_shadow_window && (x_band <= horizontal_limit) &&
+                      (y_band <= vertical_limit) && !torus_hole && !corner_cut && !depth_edge;
 
     // -------------------------------------------------------------------------
     // 3. Horizontal checker phase modulo 2048
@@ -80,23 +100,6 @@ module perspective_ground (
 
     wire u_tile_bit = pixel_phase[10];
     wire check_parity = u_tile_bit ^ v_tile_bit;
-
-    // Reflect negative distances with one's complement instead of
-    // negation. Their absolute magnitude is one more than the reflected
-    // value, so the strict negative-side cutoffs are 15, 31 and 43.
-    // The 256-pixel window excludes modular aliases outside the shadow.
-    wire signed [7:0] screen_dx = $signed(pixel_x[7:0]) - 8'sd64;
-    wire signed [7:0] shadow_dx = screen_dx - $signed({{2{shadow_x_center[5]}}, shadow_x_center});
-    wire neg_side = shadow_dx[7];
-    wire [3:0] abs_block = shadow_dx[6:3] ^ {4{neg_side}};
-    wire [2:0] offset = pixel_x[2:0];
-    wire neg_excluded_edge = neg_side && (offset == 3'd0);
-    wire x_near = (abs_block < 4'd2) && !(neg_excluded_edge && abs_block[0]);
-    wire x_mid  = (abs_block < 4'd4) && !(neg_excluded_edge && (&abs_block[1:0]));
-    wire x_wide = (abs_block < 4'd5) || ((abs_block == 4'd5) &&
-                   (neg_side ? (offset > 3'd4) : (offset < 3'd4)));
-    wire shadow_hit = (pixel_x >= 10'd192) && (pixel_x < 10'd448) &&
-                      ((row_near && x_near) || (row_mid && x_mid) || (row_wide && x_wide));
 
     // -------------------------------------------------------------------------
     // 4. Output Registering & Atmospheric Horizon Fog
