@@ -25,3 +25,10 @@ When `ui[2:1]` is `11`, `ui[0]` selects a disk (0) or capsule (1) and `ui[6:3]` 
 2. Start with all scene inputs low. The display shows a lit face-on torus.
 3. Change the pose, cube, lighting, or palette controls. Leave the whole scene word stable for up to two frames. The design applies the qualified word at vertical blank.
 4. Hold `ui[7]` high to run the independent pre-pad RGB visibility check. A healthy diagnostic produces a steady `P` pattern and asserts `uio[7]` after 1,060 clocks in the testbench. Lower `ui[7]` to re-arm the test. The check observes black versus nonblack RGB during its finite window.
+
+## Credits
+
+This project was executed by **Sujan S, Tejasvi R Shankar, Yogesh Mahesh Bisnal, and Prathik P Kekare** as an **Experiential Learning (EL)** project under the **VLSI Physical Design course (EC373TA)**, under the guidance of **Dr. Shylashree N** (Course Faculty & Guide).
+
+We sincerely thank the Department of Electronics and Communication Engineering (ECE) and RV College of Engineering (RVCE), Bangalore, for their continuous support and academic resources in facilitating this tapeout.
+
