@@ -15,6 +15,7 @@ benches=(
     tb_torus_pose
     tb_rayforge_3d
     tb_user_profiles
+    tb_shadow_profiles
 )
 
 for bench in "${benches[@]}"; do
